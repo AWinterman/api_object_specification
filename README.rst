@@ -143,8 +143,8 @@ Is this fast? Probably not. I haven't written it yet, let alone checked its
 performance characteristics. Like most readable pieces of code, it probably
 won't be.
 
-To Do:
-
-Configuration documentation
-API documentation
-Write it.
+To Do
+-----
+- Configuration documentation
+- API documentation
+- Write it.
