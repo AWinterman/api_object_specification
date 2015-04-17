@@ -20,6 +20,7 @@ The DSL actually is a CFG with the following additional characteristics:
 - Its JSON object keys are order insensitive: ``{"foo": 1, "bar": 2}`` matches
   ``{"bar": 2, "foo": 1}`` (This is hard to do with a CFG)
 - Is whitespace insensitive (where appropriate).
+- Knows when to add and when not to add a comma.
 
 Perhaps more importantly, CFGs are not terribly easy to read.
 
@@ -102,7 +103,7 @@ If there must be at least two strings, then you can say
 
 ::
 
-      STRINGS: [<string>... ]
+      STRINGS: [<string>, <string>, <string>... ]
 
 
 
@@ -118,6 +119,7 @@ Likewise, you can specify any number of keys of a certain type:
     PAIRS: "echo": "nymph"
     PAIRS: "zues": "god"
 
+Commas will automatically be added where needed.
 
 Implementation
 --------------
