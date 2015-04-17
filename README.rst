@@ -1,39 +1,34 @@
 API Object Specification
 ========================
 
+Overview
+--------
+
 A DSL for writing specifications of JSON APIs, and an accompanying
 implementation written in python. This package generates a parser and generator
 for APIs defined by a spec file.
 
-Overview
---------
+Why not just use a CFG?
+-----------------------
 
-When you write an API, you should be able to write it in such a way that you
-can generate examples and validate instances of API objects. This sphinx
-extension solves this problem by defining a JSON specification format which can
-be included and displayed in a sphinx document.
+CFGs are great! 
 
-Features of the format:
+But JSON APIs often have characteristics that don't match CFGs terribly well.
+The DSL actually is a CFG with the following additional characteristics:
 
-- Replacement rules, like a context free grammar
 - Includes the base JSON types as terminal symbols
 - Its JSON object keys are order insensitive: ``{"foo": 1, "bar": 2}`` matches
   ``{"bar": 2, "foo": 1}`` (This is hard to do with a CFG)
-- Is whitespace insensitive where JSON is whitespace insensitive.
+- Is whitespace insensitive (where appropriate).
 
-To write a specification, include the following directive in your document:
+Perhaps more importantly, CFGs are not terribly easy to read.
 
-::
+This is awefully JSON specific!
+-------------------------------
 
-    .. json-spec:: FOO_WRAPPER
-
-        FOO_WRAPPER: {
-            "foo": "bar",
-            "obj": <OBJECT>
-        }
-
-This specifies that a ``FOO_WRAPPER`` is any object with a key "foo" mapping to
-"bar", and a key "obj" mapping to any JSON object.
+You're right! I only write JSON APIs these days, but it doesn't seem
+unreasonable to extend the specification to support other formats in the
+future.
 
 Specification Format 
 --------------------
@@ -62,8 +57,7 @@ Where the definition is a JSON blob containing token and non-token entries.
 Name may be defined multiple times. The resulting specification accepts any
 definition of NAME.
 
-If the content type of the api is JSON (configurable via a property in your
-sphinx conf.py), then the following tokens are defined as primitives.
+If the content type of the api is JSON (configurable), then the following tokens are defined as primitives.
 
 - object
 - array
@@ -83,58 +77,32 @@ for the same token name:  For example:
 
 ::
 
-    A ``FOO_WRAPPER`` takes the format 
-
-    .. apiobj:: FOO_WRAPPER
-
         FOO_WRAPPER: {
           "foo": "bar"
           "obj": <object>
         }
-
-    Alternatively, an array might be passed in:
-
-    .. apiobj:: FOO_WRAPPER
 
         FOO_WRAPPER: {
           "foo": "bar"
           "array": <array>
         }
 
-Operators
-*********
+Repeated Values
+***************
 
-Limited regular expression operations on tokens are supported. 
-
-``*``
-  The Kleane star-- the object must have zero or more repetitions of the
-  proceeding token.
-``+``
-  the object must have one or more repetitions of the
-  proceeding token.
-``{n}``
-  Where ``n`` is an integer-- the preceding token must appear exactly ``n`` times.
-``{n, m}``
-  Where ``n`` and ``m`` are integers-- the preceding token must appear between ``n``
-  and ``m`` times. 
-  
-  If ``n`` is absent, the specification will fail to parse.
-  If ``m`` is absent, then objects containing at least ``n`` of the preceding
-  token  match the specification.
+``...``
+  The equivalent of the Kleane star-- the object must have zero or more
+  repetitions of the proceeding token.
 
 ::
 
-    .. apiobj:: STRINGS
-
-        STRINGS: [<string>*]
+      STRINGS: [<string>... ]
 
 If there must be at least two strings, then you can say
 
 ::
 
-    .. apiobj:: STRINGS
-
-        STRINGS: [<string>{2,}]
+      STRINGS: [<string>... ]
 
 
 
@@ -142,10 +110,8 @@ Likewise, you can specify any number of keys of a certain type:
 
 ::
 
-    .. apiobj:: FLEXIBLE
-
     FLEXIBLE: {
-      <PAIRS>*
+      <PAIRS>...
     }
 
     PAIRS: "narcissus": "man"
@@ -167,13 +133,18 @@ The JSON parser and generator are implemented according to the following steps:
    object according to the given keypath, and ensure that it matches the rule's
    definition. The ``FLEXIBLE`` example above requires special casing-- the key
    can match any of the possibilities defined by the replacement rule.
-4. If a Regular Expression operation rule is used, repeat step (3) until one of the following conditions has been met: 
-    - We have exhausted the regular expression operator.
-    - The candidate object's entry at the keypath has been consumed.
-    - We generated a value a configurable maximum number of times.
+4. If a regular expression operation rule is used, repeat step (3) until one of the following conditions has been met: 
 
-Future Plans
-------------
+   - We have exhausted the regular expression operator.
+   - The candidate object's entry at the keypath has been consumed.
+   - We generated a value a configurable maximum number of times.
 
-For now, this only targets JSON APIs. It should be extensible to other
-formats, should there be a need.
+Is this fast? Probably not. I haven't written it yet, let alone checked its
+performance characteristics. Like most readable pieces of code, it probably
+won't be.
+
+To Do:
+
+Configuration documentation
+API documentation
+Write it.
