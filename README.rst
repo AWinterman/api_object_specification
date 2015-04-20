@@ -1,6 +1,8 @@
 API Object Specification
 ========================
 
+.. contents::
+
 Overview
 --------
 
@@ -24,12 +26,15 @@ The DSL actually is a CFG with the following additional characteristics:
 
 Perhaps more importantly, CFGs are not terribly easy to read.
 
-This is awefully JSON specific!
+This is awfully JSON specific!
 -------------------------------
 
 You're right! I only write JSON APIs these days, but it doesn't seem
 unreasonable to extend the specification to support other formats in the
 future.
+
+
+.. _specification-format:
 
 Specification Format 
 --------------------
