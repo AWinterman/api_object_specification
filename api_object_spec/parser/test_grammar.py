@@ -17,48 +17,43 @@ class TestGrammar(unittest.TestCase):
         model = grammar.Model(result)
 
 
-    def test_pair(self):
+    def test_object(self):
         tokenvalue = grammar.dsl['object'].parse('{"wutever": "<mang>"}')
         simple = grammar.dsl['object'].parse('{"wutever": "mang"}')
         bothtoken = grammar.dsl['object'].parse('{<mang>}')
 
+        grammar.handle_pair(grammar.Model(tokenvalue))
+        grammar.handle_pair(grammar.Model(simple))
+        grammar.handle_pair(grammar.Model(bothtoken))
+
+
+    def test_key_value(self):
+        plain = grammar.dsl['pair'].parse('"so": "it goes"')
+        with_token = grammar.dsl['pair'].parse('"so": <token>')
+        with_object = grammar.dsl['pair'].parse('"this": {"object": null}')
+
+        grammar.handle_key_value(grammar.Model(plain))
+        grammar.handle_key_value(grammar.Model(with_token))
+        grammar.handle_key_value(grammar.Model(with_object))
+
+
     def test_definition(self):
+        result = grammar.dsl['definition'].parse('pair = "one": "two"')
+
+
+
+    def test_lexer(self):
         result = grammar.dsl['definitions'].parse(
             '''
             apathy = {"asif": "icare", "number": 1}
             apathy = {"deeper": {"nesting": {"of": "obj"}}, "another": "key"}
             apathy = {<token>...}
+            token = "god": "zeus"
+            token = "nymph": "echo"
+            token = "man": <human>
         '''.strip())
 
         model = grammar.Model(result)
 
-        definitions = []
-
-        for definition in model.definition:
-            definition_constraint = grammar.ConstraintSet()
-            definitions.append(grammar.Definition(name=definition.name[0].text, constraints=definition_constraint))
-
-            if definition.object:
-                object_constraints = grammar.ObjectConstraints()
-
-                definition_constraint.constrain(object_constraints)
-
-                for pair in definition.pair:
-                    for c in pair.children[0].children:
-                        if not c.expr_name:
-                            continue
-
-                        if c.expr_name == 'repeated_token':
-                            token_name = grammar.query_expr_name(c, 'token_text').next()
-                            object_constraints.constrain(pair=token_name, type=grammar.Type.token, repeated=True)
-
-                        if c.expr_name == 'pair_value':
-
-
-
-
-
-            print result
-
-
+        self.lex_definition_constraints(model)
 
