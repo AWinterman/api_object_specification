@@ -16,14 +16,15 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(result.type, 'repeated_token')
 
     def test_object(self):
-        tokenvalue = self.constraint_definition.model('{"wutever": "<mang>"}', rule='object')
+        tokenvalue = self.constraint_definition.model('{"wutever": <mang>, "truf": true}', rule='object')
+        simple = self.constraint_definition.model('{"wutever": "is this even real?"}', rule='object')
+        token = self.constraint_definition.model('{<token>}', rule='object')
 
-        # simple = grammar.dsl['object'].parse('{"wutever": "mang"}')
-        # bothtoken = grammar.dsl['object'].parse('{<mang>}')
-
-        self.constraint_definition._pair(tokenvalue)
-        # grammar.handle_pair(grammar.Model(simple))
-        # grammar.handle_pair(grammar.Model(bothtoken))
+        # print tokenvalue
+        # print tokenvalue.node
+        print self.constraint_definition._object(tokenvalue)
+        # print self.constraint_definition._object(simple)
+        # print self.constraint_definition._object(token)
 
 
     def test_key_value(self):

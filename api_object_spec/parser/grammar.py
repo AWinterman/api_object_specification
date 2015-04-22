@@ -18,8 +18,7 @@ token_text =  ~"[A-Z_]"i*
 value = space (primitive / object / array) space
 element = value / token
 
-object = space "{" members "}" space
-members = (pair ("," pair)*)
+object = space "{" (pair ("," pair)*)? "}" space
 pair =  key_value / token
 key_value = (string ":" (value / one_token))
 array = "[" elements "]"
@@ -45,20 +44,6 @@ space = ~"\s*"
 dsl = Grammar(DSL)
 
 Condition = namedtuple("Condition", ["descend", "match"])
-
-
-class ConstraintType(Enum):
-    """
-    Defines the various types of constraints allowed.
-    """
-    object = 1
-    array = 2
-    string = 3
-    boolean = 4
-    null = 5
-    token = 6
-    number = 7
-    key = 8
 
 
 def traverse(node, evaluate, depth_first=True):
@@ -88,21 +73,26 @@ class Model(object):
         - type
         - descend
     """
+
     def __init__(self, node):
         self.node = node
 
     def __iter__(self):
-        return (Model(child) for child in self.node.children)
+        return (Model(result) for child in self.node.children for result in
+                traverse(child, MatchExprBlankDescends(expr_name=None, ignore=['space'])))
 
     def __getattr__(self, name):
         if name == 'type':
             return self.node.expr_name
         elif name == 'text':
             return self.node.text.strip()
+        elif name not in dsl:
+            raise AttributeError('no such expr_type {}'.format(name))
 
-        include = MatchExprName(expr_name=name)
-
-        return [Model(result) for result in self.node.children if include(result).match]
+        # descends through spaces and through unnamed groups. Unnamed matches are usually regex, or expressions of
+        # named groups.
+        return [Model(result) for child in self.node.children for result in
+                traverse(child, MatchExprBlankDescends(expr_name=name, ignore=['space']))]
 
     def descend(self, item):
         """
@@ -114,7 +104,7 @@ class Model(object):
         return [Model(result) for result in traverse(self.node, MatchExprName(expr_name=item))]
 
     def __repr__(self):
-        return '<grammar.Model: {}>'.format(self.text)
+        return '<grammar.Model: {} with type {}>'.format(self.text, self.type)
 
 
 class MatchExprName(object):
@@ -128,12 +118,45 @@ class MatchExprName(object):
         return Condition(match=matches, descend=self.descend)
 
 
+class MatchExprBlankDescends(object):
+    def __init__(self, expr_name=None, ignore=()):
+        self.expr_name = expr_name
+        self.ignore = ignore
+
+    def __call__(self, node):
+        descend = not node.expr_name or node.expr_name in self.ignore
+
+        matches = node.expr_name == self.expr_name if self.expr_name is not None else not descend
+
+        return Condition(match=matches, descend=descend)
+
+
+Constraint = namedtuple('Constraint', ['type', 'value'])
+Definition = namedtuple('Definition', ['constraints', 'name'])
+
+
+class ConstraintType(Enum):
+    """
+    Defines the various types of constraints allowed.
+    """
+    object = 1
+    array = 2
+    string = 3
+    boolean = 4
+    null = 5
+    number = 7
+    token = 7
+    repeated_token = 8
+    key_value = 9  # A pair of key/value constraints. Done like this because they are connected (the value constraint
+                   #  needs the key constraint to be meaningful)
+    key = 10  # Indicates an object/array must have the given key/index
+    value = 11  # Indicates the value constraints at a given key/index.
+
+
 class ConstraintDefinition(object):
     """
     Instantiates a callable which takes text as input and returns a constraint tree as output.
     """
-    Constraint = namedtuple('Constraint', ['type', 'value', 'repeated'])
-    Definition = namedtuple('Definition', ['constraints', 'name'])
 
     def __call__(self, text):
         model = self.model(text)
@@ -145,7 +168,8 @@ class ConstraintDefinition(object):
 
         return definitions
 
-    def model(self, text, rule=None):
+    @staticmethod
+    def model(text, rule=None):
         if rule is not None:
             model = Model(dsl[rule].parse(text))
         else:
@@ -162,7 +186,7 @@ class ConstraintDefinition(object):
         for value in node.value:
             constraints.extend(self._value(value))
 
-        return self.Definition(name=node.find('name')[0], constraints=constraints)
+        return Definition(name=node.find('name')[0], constraints=constraints)
 
     @staticmethod
     def _array(node):
@@ -172,10 +196,14 @@ class ConstraintDefinition(object):
     def _value(self, val):
         constraints = []
 
-        # only one of the following calls should result in a non-empty list
-        constraints.extend(self._object(val))
-        constraints.extend(self._array(val))
-        constraints.extend(self._primitive(val))
+        for obj in val.object:
+            constraints.extend(self._object(obj))
+
+        for array in val.array:
+            constraints.extend(self._array(array))
+
+        for primitive in val.primitive:
+            constraints.extend(self._primitive(primitive))
 
         return constraints
 
@@ -183,10 +211,9 @@ class ConstraintDefinition(object):
         constraints = []
 
         for pair in obj.pair:
-            object_constraints = self._pair(pair)
-            constraints.append(self.Constraint(type=ConstraintType.object, value=object_constraints, repeated=False))
+            constraints.extend(self._pair(pair))
 
-        return constraints
+        return [Constraint(type=ConstraintType.object, value=constraints)]
 
     def _pair(self, pair):
         constraints = []
@@ -195,7 +222,7 @@ class ConstraintDefinition(object):
             constraints.extend(self._token(token))
 
         for kv in pair.key_value:
-            constraints.extend(self._key_value(kv))
+            constraints.extend(Constraint(type=ConstraintType.key_value, value=self._key_value(kv)))
 
         return constraints
 
@@ -205,11 +232,15 @@ class ConstraintDefinition(object):
         children = list(node)
 
         key = children[0]
-        value = children[2]
+        value = children[1]
 
-        constraints.append(self.Constraint(type=ConstraintType.key, value=key, repeated=False))
-        constraints.extend(self._value(value))
-        constraints.extend(self._token(value))
+        constraints.append(Constraint(type=ConstraintType.key, value=key.text))
+
+        if value.type == 'one_token':
+            constraints.append(self._one_token(value))
+
+        if value.type == 'value':
+            constraints.append(self._value(value))
 
         return constraints
 
@@ -218,27 +249,36 @@ class ConstraintDefinition(object):
 
         for token in node.token:
             if token.repeated_token:
-                constraints.append(self.Constraint(value=token.token_text[0], type=ConstraintType.token, repeated=True))
+                constraints.extend(self._repeated_token(token))
             if token.one_token:
-                constraints.append(self.Constraint(value=token.token_text[0], type=ConstraintType.token, repeated=False))
+                constraints.extend(self._one_token(token))
 
         return constraints
 
     @staticmethod
-    def _primitive(self, node):
+    def _one_token(token):
+        return [Constraint(value=token.descend('token_text')[0], type=ConstraintType.token)]
+
+    @staticmethod
+    def _repeated_token(token):
+        return [Constraint(value=token.descend('token_text')[0], type=ConstraintType.repeated_token)]
+
+    @staticmethod
+    def _primitive(n):
         constraints = []
 
-        for n in node.children('primitive'):
-            if n.string:
-                dsl_type = ConstraintType.string
-            elif n.number:
-                dsl_type = ConstraintType.number
-            elif n.boolean:
-                dsl_type = ConstraintType.boolean
-            elif n.null:
-                dsl_type = ConstraintType.null
+        if n.string:
+            dsl_type = ConstraintType.string
+        elif n.number:
+            dsl_type = ConstraintType.number
+        elif n.boolean:
+            dsl_type = ConstraintType.boolean
+        elif n.null:
+            dsl_type = ConstraintType.null
+        else:
+            raise ValueError('{} is not a primitive'.format(n))
 
-            constraints.append(self.Constraint(value=n.text, type=dsl_type, repeated=False))
+        constraints.append(Constraint(value=n.text, type=dsl_type))
 
         return constraints
 
