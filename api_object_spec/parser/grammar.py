@@ -1,4 +1,4 @@
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from enum import Enum
 from parsimonious.grammar import Grammar
 
@@ -21,8 +21,7 @@ element = value / token
 object = space "{" (pair ("," pair)*)? "}" space
 pair =  key_value / token
 key_value = (string ":" (value / one_token))
-array = "[" elements "]"
-elements = (element ("," element)*)?
+array = "[" (element ("," element)*)? "]"
 
 primitive = (string / number  / boolean / null)
 boolean = "true" / "false"
@@ -45,8 +44,10 @@ dsl = Grammar(DSL)
 
 Condition = namedtuple("Condition", ["descend", "match"])
 
+def get_children(item):
+    return item.children
 
-def traverse(node, evaluate, depth_first=True):
+def traverse(node, evaluate, depth_first=True, next_generation=get_children):
     trees = [node]
 
     while trees:
@@ -55,8 +56,8 @@ def traverse(node, evaluate, depth_first=True):
         condition = evaluate(tree)
 
         if condition.descend:
-            for child in tree.children:
-                trees.insert(0 if depth_first else trees.length, child)
+            for child in next_generation(tree):
+                trees.insert(0 if depth_first else len(trees), child)
 
         if condition.match:
             yield tree
@@ -97,9 +98,6 @@ class Model(object):
     def descend(self, item):
         """
         Descend the parsed tree for all expr_name matching items.
-
-        :param item:
-        :return:
         """
         return [Model(result) for result in traverse(self.node, MatchExprName(expr_name=item))]
 
@@ -147,11 +145,29 @@ class ConstraintType(Enum):
     number = 7
     token = 8
     repeated_token = 9
-    key_value = 10  # A pair of key/value constraints. Done like this because they are connected (the value constraint
-                    #  needs the key constraint to be meaningful)
 
-    key = 11        # Indicates an object/array must have the given key/index
-    value = 12      # Indicates the value constraints at a given key/index.
+    # A pair of key/value constraints. Done like this because they are connected (the value constraint
+    # needs the key constraint to be meaningful)
+    key_value = 10
+
+    key = 11  # Indicates an object/array must have the given key/index
+    value = 12  # Indicates the value constraints at a given key/index.
+
+    array_element = 13
+    index = 14
+    element = 15
+
+    @property
+    def is_token(self):
+        return self in [ConstraintType.token or ConstraintType.repeated_token]
+
+    @property
+    def has_children(self):
+        return self in [ConstraintType.object, ConstraintType.array, ConstraintType.array_element, ConstraintType.key_value]
+
+    @property
+    def is_leaf(self):
+        return not self.has_children
 
 
 class ConstraintDefinition(object):
@@ -165,7 +181,6 @@ class ConstraintDefinition(object):
         definitions = []
 
         for definition in model.definition:
-            print definition.text
             definitions.append(self._definition(definition))
 
         return definitions
@@ -183,52 +198,75 @@ class ConstraintDefinition(object):
         constraints = []
 
         for key_value in node.key_value:
-            constraints.extend(self._key_value(key_value))
+            constraints.append(self._key_value(key_value))
 
         for value in node.value:
-            constraints.extend(self._value(value))
+            constraints.append(self._value(value))
 
-        return Definition(name=node.descend('name')[0], constraints=constraints)
+        return Definition(name=node.descend('name')[0].text, constraints=constraints)
 
-    @staticmethod
-    def _array(node):
-        # TODO: actually write this bad boy.
-        return []
-
-    def _value(self, val):
+    def _array(self, array):
         constraints = []
 
-        for obj in val.object:
-            constraints.extend(self._object(obj))
+        elements = array.element
+        # for some reason nodes come out in reverse order, hence:
+        elements.reverse()
 
-        for array in val.array:
-            constraints.extend(self._array(array))
+        for index, element in enumerate(elements):
 
-        for primitive in val.primitive:
-            constraints.extend(self._primitive(primitive))
+            value = element.value
+            token = element.token
 
-        return constraints
+            if value:
+                el = self._value(*value)
+            if token:
+                el = self._token(*token)
+
+            index_constraint = Constraint(type=ConstraintType.index, value=index)
+            element_constraint = Constraint(type=ConstraintType.element, value=el)
+
+            constraints.append(
+                Constraint(type=ConstraintType.array_element, value=[index_constraint, element_constraint]))
+
+        return Constraint(type=ConstraintType.array, value=constraints)
+
+    def _value(self, val):
+        obj = val.object
+        array = val.array
+        primitive = val.primitive
+
+        # The following calls use argument unpacking, so that they throw if you somehow have too many elements here.
+        if obj:
+            return self._object(*obj)
+
+        if array:
+            return self._array(*array)
+
+        if primitive:
+            return self._primitive(*primitive)
+
+        raise ValueError('{} is not a value'.format(val))
 
     def _object(self, obj):
         constraints = []
 
         for pair in obj.pair:
-            constraints.extend(self._pair(pair))
+            constraints.append(self._pair(pair))
 
-        return [Constraint(type=ConstraintType.object, value=constraints)]
+        return Constraint(type=ConstraintType.object, value=constraints)
 
     def _pair(self, pair):
-        constraints = []
+        token = pair.token
+        kv = pair.key_value
 
-        for token in pair.token:
-            constraints.append(Constraint(type=ConstraintType.key_value, value=self._token(token)))
+        # using unpacking here, should only get one element, if you have more it will throw.
+        if token:
+            return Constraint(type=ConstraintType.key_value, value=self._token(*token))
 
-        for kv in pair.key_value:
-            constraints.append(
-                Constraint(type=ConstraintType.key_value, value=self._key_value(kv))
-            )
+        if kv:
+            return Constraint(type=ConstraintType.key_value, value=self._key_value(*kv))
 
-        return constraints
+        raise ValueError('{} is not a pair'.format(pair))
 
     def _key_value(self, node):
         constraints = []
@@ -244,7 +282,7 @@ class ConstraintDefinition(object):
             constraints.append(self._one_token(value))
 
         if value.type == 'value':
-            constraints.extend(self._value(value))
+            constraints.append(self._value(value))
 
         return constraints
 
@@ -256,17 +294,15 @@ class ConstraintDefinition(object):
 
     @staticmethod
     def _one_token(token):
-        return [Constraint(value=token.descend('token_text')[0].text, type=ConstraintType.token)]
+        return Constraint(value=token.descend('token_text')[0].text, type=ConstraintType.token)
 
 
     @staticmethod
     def _repeated_token(token):
-        return [Constraint(value=token.descend('token_text')[0].text, type=ConstraintType.repeated_token)]
+        return Constraint(value=token.descend('token_text')[0].text, type=ConstraintType.repeated_token)
 
     @staticmethod
     def _primitive(n):
-        constraints = []
-
         value = n.text
 
         if n.string:
@@ -281,11 +317,23 @@ class ConstraintDefinition(object):
         else:
             raise ValueError('{} is not a primitive'.format(n))
 
-        return [Constraint(value=value, type=dsl_type)]
+        return Constraint(value=value, type=dsl_type)
 
 
 
 
+class Language(object):
+    default_tokens = (
+        'string',
+        'boolean',
+        'number',
+        'null',
+        'object',
+        'array',
+    )
+
+    def __init__(self, definitions):
+        self.definitions = definitions
 
 
 

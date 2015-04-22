@@ -15,22 +15,34 @@ class TestGrammar(unittest.TestCase):
         result = grammar.dsl['token'].parse('<WUTEVER>...')
         self.assertEqual(result.expr_name, 'token')
 
+    def test_array(self):
+        result = self.constraint_definition.model('["a", <b>, {"c": "d"}, <e>...]', rule="array")
+
+        array_constraint = self.constraint_definition._array(result)
+
+        self.assertEqual(array_constraint.type, grammar.ConstraintType.array)
+        self.assertEqual(len(array_constraint.value), 4)
+        self.assertEqual(array_constraint.value[0].value[0].value, 0)
+        self.assertEqual(array_constraint.value[0].value[0].type, grammar.ConstraintType.index)
+        self.assertEqual(array_constraint.value[0].value[1].value, grammar.Constraint(value='a', type=grammar.ConstraintType.string))
+
+
     def test_object(self):
         tokenvalue = self.constraint_definition.model('{"wutever": <mang>, "such key": "value", <token>, <ssss>...}',
                                                       rule='object')
 
         result = self.constraint_definition._object(tokenvalue)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].type, grammar.ConstraintType.object)
-        s = {v.type for v in result[0].value}
+
+        self.assertEqual(result.type, grammar.ConstraintType.object)
+        s = {v.type for v in result.value}
         self.assertEqual(len(s), 1)
         self.assertEqual(s.pop(), grammar.ConstraintType.key_value)
 
-        self.assertEqual(result[0].value[0].value[0],
+        self.assertEqual(result.value[0].value,
                          grammar.Constraint(type=grammar.ConstraintType.repeated_token, value='ssss'))
-        self.assertEqual(result[0].value[1].value[0],
+        self.assertEqual(result.value[1].value,
                          grammar.Constraint(type=grammar.ConstraintType.token, value='token'))
-        self.assertEqual(result[0].value[2].value,
+        self.assertEqual(result.value[2].value,
                          [grammar.Constraint(type=grammar.ConstraintType.key, value='such key'),
                           grammar.Constraint(type=grammar.ConstraintType.string, value='value')])
 
@@ -48,6 +60,7 @@ class TestGrammar(unittest.TestCase):
     def test_call(self):
         result = self.constraint_definition(
             '''
+            apathetics = [<apathy>...]
             apathy = {"asif": "icare", "number": 1}
             apathy = {"deeper": {"nesting": {"of": "obj"}}, "another": "key"}
             apathy = {<token>...}
@@ -56,4 +69,26 @@ class TestGrammar(unittest.TestCase):
             token = "man": <human>
         '''.strip())
 
-        print result
+        type = result[0].constraints[0].type
+
+
+        print (type.is_token, type.is_leaf, type.has_children, type.name)
+
+    def test_language(selfself):
+        spec = '''
+            apathetics = [<apathy>...]
+            apathy = {"asif": "icare", "number": 1}
+            apathy = {"deeper": {"nesting": {"of": "obj"}}, "another": "key"}
+            apathy = {<token>...}
+            token = "god": "zeus"
+            token = "nymph": "echo"
+            token = "man": <human>
+        '''
+
+        lang = grammar.Language(spec)
+
+        print lang
+
+
+
+
