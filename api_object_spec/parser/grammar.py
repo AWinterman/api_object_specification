@@ -133,7 +133,7 @@ Constraint = namedtuple('Constraint', ['type', 'value'])
 Definition = namedtuple('Definition', ['constraints', 'name'])
 
 
-class ConstraintType(Enum):
+class Type(Enum):
     """
     Defines the various types of constraints allowed.
     """
@@ -159,11 +159,11 @@ class ConstraintType(Enum):
 
     @property
     def is_token(self):
-        return self in [ConstraintType.token or ConstraintType.repeated_token]
+        return self in [Type.token, Type.repeated_token]
 
     @property
     def has_children(self):
-        return self in [ConstraintType.object, ConstraintType.array, ConstraintType.array_element, ConstraintType.key_value]
+        return self in [Type.object, Type.array, Type.array_element, Type.key_value]
 
     @property
     def is_leaf(self):
@@ -222,13 +222,13 @@ class ConstraintDefinition(object):
             if token:
                 el = self._token(*token)
 
-            index_constraint = Constraint(type=ConstraintType.index, value=index)
-            element_constraint = Constraint(type=ConstraintType.element, value=el)
+            index_constraint = Constraint(type=Type.index, value=index)
+            element_constraint = Constraint(type=Type.element, value=el)
 
             constraints.append(
-                Constraint(type=ConstraintType.array_element, value=[index_constraint, element_constraint]))
+                Constraint(type=Type.array_element, value=[index_constraint, element_constraint]))
 
-        return Constraint(type=ConstraintType.array, value=constraints)
+        return Constraint(type=Type.array, value=constraints)
 
     def _value(self, val):
         obj = val.object
@@ -253,7 +253,7 @@ class ConstraintDefinition(object):
         for pair in obj.pair:
             constraints.append(self._pair(pair))
 
-        return Constraint(type=ConstraintType.object, value=constraints)
+        return Constraint(type=Type.object, value=constraints)
 
     def _pair(self, pair):
         token = pair.token
@@ -261,10 +261,10 @@ class ConstraintDefinition(object):
 
         # using unpacking here, should only get one element, if you have more it will throw.
         if token:
-            return Constraint(type=ConstraintType.key_value, value=self._token(*token))
+            return Constraint(type=Type.key_value, value=self._token(*token))
 
         if kv:
-            return Constraint(type=ConstraintType.key_value, value=self._key_value(*kv))
+            return Constraint(type=Type.key_value, value=self._key_value(*kv))
 
         raise ValueError('{} is not a pair'.format(pair))
 
@@ -276,7 +276,7 @@ class ConstraintDefinition(object):
         key = children[0]
         value = children[1]
 
-        constraints.append(Constraint(type=ConstraintType.key, value=key.text[1:-1]))
+        constraints.append(Constraint(type=Type.key, value=key.text[1:-1]))
 
         if value.type == 'one_token':
             constraints.append(self._one_token(value))
@@ -294,32 +294,30 @@ class ConstraintDefinition(object):
 
     @staticmethod
     def _one_token(token):
-        return Constraint(value=token.descend('token_text')[0].text, type=ConstraintType.token)
+        return Constraint(value=token.descend('token_text')[0].text, type=Type.token)
 
 
     @staticmethod
     def _repeated_token(token):
-        return Constraint(value=token.descend('token_text')[0].text, type=ConstraintType.repeated_token)
+        return Constraint(value=token.descend('token_text')[0].text, type=Type.repeated_token)
 
     @staticmethod
     def _primitive(n):
         value = n.text
 
         if n.string:
-            dsl_type = ConstraintType.string
+            dsl_type = Type.string
             value = n.text[1:-1]
         elif n.number:
-            dsl_type = ConstraintType.number
+            dsl_type = Type.number
         elif n.boolean:
-            dsl_type = ConstraintType.boolean
+            dsl_type = Type.boolean
         elif n.null:
-            dsl_type = ConstraintType.null
+            dsl_type = Type.null
         else:
             raise ValueError('{} is not a primitive'.format(n))
 
         return Constraint(value=value, type=dsl_type)
-
-
 
 
 class Language(object):
@@ -334,8 +332,3 @@ class Language(object):
 
     def __init__(self, definitions):
         self.definitions = definitions
-
-
-
-
-

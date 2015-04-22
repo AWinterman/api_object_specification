@@ -20,11 +20,11 @@ class TestGrammar(unittest.TestCase):
 
         array_constraint = self.constraint_definition._array(result)
 
-        self.assertEqual(array_constraint.type, grammar.ConstraintType.array)
+        self.assertEqual(array_constraint.type, grammar.Type.array)
         self.assertEqual(len(array_constraint.value), 4)
         self.assertEqual(array_constraint.value[0].value[0].value, 0)
-        self.assertEqual(array_constraint.value[0].value[0].type, grammar.ConstraintType.index)
-        self.assertEqual(array_constraint.value[0].value[1].value, grammar.Constraint(value='a', type=grammar.ConstraintType.string))
+        self.assertEqual(array_constraint.value[0].value[0].type, grammar.Type.index)
+        self.assertEqual(array_constraint.value[0].value[1].value, grammar.Constraint(value='a', type=grammar.Type.string))
 
 
     def test_object(self):
@@ -33,18 +33,18 @@ class TestGrammar(unittest.TestCase):
 
         result = self.constraint_definition._object(tokenvalue)
 
-        self.assertEqual(result.type, grammar.ConstraintType.object)
+        self.assertEqual(result.type, grammar.Type.object)
         s = {v.type for v in result.value}
         self.assertEqual(len(s), 1)
-        self.assertEqual(s.pop(), grammar.ConstraintType.key_value)
+        self.assertEqual(s.pop(), grammar.Type.key_value)
 
         self.assertEqual(result.value[0].value,
-                         grammar.Constraint(type=grammar.ConstraintType.repeated_token, value='ssss'))
+                         grammar.Constraint(type=grammar.Type.repeated_token, value='ssss'))
         self.assertEqual(result.value[1].value,
-                         grammar.Constraint(type=grammar.ConstraintType.token, value='token'))
+                         grammar.Constraint(type=grammar.Type.token, value='token'))
         self.assertEqual(result.value[2].value,
-                         [grammar.Constraint(type=grammar.ConstraintType.key, value='such key'),
-                          grammar.Constraint(type=grammar.ConstraintType.string, value='value')])
+                         [grammar.Constraint(type=grammar.Type.key, value='such key'),
+                          grammar.Constraint(type=grammar.Type.string, value='value')])
 
 
     def test_key_value(self):
