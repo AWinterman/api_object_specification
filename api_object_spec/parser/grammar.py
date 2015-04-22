@@ -145,12 +145,13 @@ class ConstraintType(Enum):
     boolean = 4
     null = 5
     number = 7
-    token = 7
-    repeated_token = 8
-    key_value = 9  # A pair of key/value constraints. Done like this because they are connected (the value constraint
-                   #  needs the key constraint to be meaningful)
-    key = 10  # Indicates an object/array must have the given key/index
-    value = 11  # Indicates the value constraints at a given key/index.
+    token = 9
+    repeated_token = 9
+    key_value = 10  # A pair of key/value constraints. Done like this because they are connected (the value constraint
+                    #  needs the key constraint to be meaningful)
+
+    key = 11        # Indicates an object/array must have the given key/index
+    value = 12      # Indicates the value constraints at a given key/index.
 
 
 class ConstraintDefinition(object):
@@ -219,10 +220,12 @@ class ConstraintDefinition(object):
         constraints = []
 
         for token in pair.token:
-            constraints.extend(self._token(token))
+            constraints.append(Constraint(type=ConstraintType.key_value, value=self._token(token)))
 
         for kv in pair.key_value:
-            constraints.extend(Constraint(type=ConstraintType.key_value, value=self._key_value(kv)))
+            constraints.append(
+                Constraint(type=ConstraintType.key_value, value=self._key_value(kv))
+            )
 
         return constraints
 
@@ -237,31 +240,27 @@ class ConstraintDefinition(object):
         constraints.append(Constraint(type=ConstraintType.key, value=key.text))
 
         if value.type == 'one_token':
-            constraints.append(self._one_token(value))
+            constraints.extend(self._one_token(value))
 
         if value.type == 'value':
-            constraints.append(self._value(value))
+            constraints.extend(self._value(value))
 
         return constraints
 
-    def _token(self, node):
-        constraints = []
-
-        for token in node.token:
-            if token.repeated_token:
-                constraints.extend(self._repeated_token(token))
-            if token.one_token:
-                constraints.extend(self._one_token(token))
-
-        return constraints
+    def _token(self, token):
+        if token.repeated_token:
+            return self._repeated_token(token)
+        if token.one_token:
+            return self._one_token(token)
 
     @staticmethod
     def _one_token(token):
-        return [Constraint(value=token.descend('token_text')[0], type=ConstraintType.token)]
+        return [Constraint(value=token.descend('token_text')[0].text, type=ConstraintType.token)]
+
 
     @staticmethod
     def _repeated_token(token):
-        return [Constraint(value=token.descend('token_text')[0], type=ConstraintType.repeated_token)]
+        return [Constraint(value=token.descend('token_text')[0].text, type=ConstraintType.repeated_token)]
 
     @staticmethod
     def _primitive(n):

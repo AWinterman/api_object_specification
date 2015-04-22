@@ -16,25 +16,33 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(result.type, 'repeated_token')
 
     def test_object(self):
-        tokenvalue = self.constraint_definition.model('{"wutever": <mang>, "truf": true}', rule='object')
-        simple = self.constraint_definition.model('{"wutever": "is this even real?"}', rule='object')
-        token = self.constraint_definition.model('{<token>}', rule='object')
+        tokenvalue = self.constraint_definition.model('{"wutever": <mang>, "such key": "value", <token>, <ssss>...}', rule='object')
+
 
         # print tokenvalue
         # print tokenvalue.node
-        print self.constraint_definition._object(tokenvalue)
+        result = self.constraint_definition._object(tokenvalue)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].type, grammar.ConstraintType.object)
+
+        s = {v.type for v in result[0].value}
+        self.assertEqual(len(s), 1)
+        self.assertEqual(s.pop(), grammar.ConstraintType.key_value)
+
+        print result[0].value[1]
+        print result[0].value[2]
+        print result[0].value[3]
+
         # print self.constraint_definition._object(simple)
         # print self.constraint_definition._object(token)
 
 
     def test_key_value(self):
-        plain = grammar.dsl['pair'].parse('"so": "it goes"')
-        with_token = grammar.dsl['pair'].parse('"so": <token>')
-        with_object = grammar.dsl['pair'].parse('"this": {"object": null}')
+        plain = self.constraint_definition.model('"so": "it goes"', rule='pair')
+        with_token = self.constraint_definition.model('"so": <token>', rule='pair')
+        with_object = self.constraint_definition.model('"this": {"object": null}', rule='pair')
 
-        grammar.handle_key_value(grammar.Model(plain))
-        grammar.handle_key_value(grammar.Model(with_token))
-        grammar.handle_key_value(grammar.Model(with_object))
+        print self.constraint_definition._pair(plain)
 
 
     def test_definition(self):
