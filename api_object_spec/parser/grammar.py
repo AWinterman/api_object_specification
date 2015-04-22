@@ -1,8 +1,6 @@
 from collections import namedtuple
-from parsimonious import NodeVisitor, rule
-
 from enum import Enum
-
+from parsimonious.grammar import Grammar
 
 DSL = r"""# A grammar for specifying JSON
 # DSL specific
@@ -43,52 +41,27 @@ digit1to9 = ~"[1-9]"
 digit = ~"[0-9]"
 space = ~"\s*"
 """
-from parsimonious.grammar import Grammar
-
-Condition = namedtuple("Condition", ["descend", "match"])
 
 dsl = Grammar(DSL)
 
-def query_expr_name(node, expr_name, depth_first=True):
-    return traverse(node, MatchExprName(expr_name=expr_name), depth_first=depth_first)
+Condition = namedtuple("Condition", ["descend", "match"])
 
 
-class Model(object):
-    def __init__(self, node):
-        if 'node' in dsl or 'children' in dsl or 'text' in dsl or 'type' in dsl:
-            raise NameError('Name Error: Please avoid naming rules "node" or "children"')
-
-        self.node = node
-
-    def children(self, expr_name=None):
-        include = MatchExprName(expr_name=expr_name)
-
-        return [Model(result) for result in self.node.children if include(result).match]
-
-    @property
-    def text(self):
-        return self.node.text.strip()
-
-    @property
-    def type(self):
-        return self.node.expr_type
-
-    def __getattr__(self, item):
-        return [Model(result) for result in query_expr_name(self.node, item)]
-
-    def __repr__(self):
-        return '<grammar.Model: {}>'.format(self.text)
+class ConstraintType(Enum):
+    """
+    Defines the various types of constraints allowed.
+    """
+    object = 1
+    array = 2
+    string = 3
+    boolean = 4
+    null = 5
+    token = 6
+    number = 7
+    key = 8
 
 
 def traverse(node, evaluate, depth_first=True):
-    """
-    Given a tree, find all the nodes arrived at by descending only those children who match expr_names at a given level.
-
-
-    :param: evaluate
-        A callable returning a :class:`NodeEvaluation` which determines whether we should descend or (inclusive) yield
-        the child.
-    """
     trees = [node]
 
     while trees:
@@ -104,6 +77,46 @@ def traverse(node, evaluate, depth_first=True):
             yield tree
 
 
+class Model(object):
+    """
+    Given a parsed grammar, make a model object for easy querying.
+
+    Exposes a nodes children matching expr_name as getattr(model, expr_name).
+
+    Reserves the following names. You won't be able to look these up if you use them in your grammar:
+        - text
+        - type
+        - descend
+    """
+    def __init__(self, node):
+        self.node = node
+
+    def __iter__(self):
+        return (Model(child) for child in self.node.children)
+
+    def __getattr__(self, name):
+        if name == 'type':
+            return self.node.expr_name
+        elif name == 'text':
+            return self.node.text.strip()
+
+        include = MatchExprName(expr_name=name)
+
+        return [Model(result) for result in self.node.children if include(result).match]
+
+    def descend(self, item):
+        """
+        Descend the parsed tree for all expr_name matching items.
+
+        :param item:
+        :return:
+        """
+        return [Model(result) for result in traverse(self.node, MatchExprName(expr_name=item))]
+
+    def __repr__(self):
+        return '<grammar.Model: {}>'.format(self.text)
+
+
 class MatchExprName(object):
     def __init__(self, expr_name=None, descend=True):
         self.expr_name = expr_name
@@ -115,99 +128,119 @@ class MatchExprName(object):
         return Condition(match=matches, descend=self.descend)
 
 
-class DSLType(Enum):
-    object = 1
-    array = 2
-    string = 3
-    boolean = 4
-    null = 5
-    token = 6
-    number = 7
+class ConstraintDefinition(object):
+    """
+    Instantiates a callable which takes text as input and returns a constraint tree as output.
+    """
+    Constraint = namedtuple('Constraint', ['type', 'value', 'repeated'])
+    Definition = namedtuple('Definition', ['constraints', 'name'])
 
-Constraint = namedtuple('Constraint', ['type', 'value', 'repeated'])
-Definition = namedtuple('Definition', ['constraints', 'name'])
+    def __call__(self, text):
+        model = self.model(text)
 
-    
-def lex_definition_constraints(self, model):
-    definitions = []
+        definitions = []
 
-    for definition in model.definition:
+        for definition in model.definitions:
+            definitions.append(self._definition(definition))
+
+        return definitions
+
+    def model(self, text, rule=None):
+        if rule is not None:
+            model = Model(dsl[rule].parse(text))
+        else:
+            model = Model(dsl.parse(text))
+
+        return model
+
+    def _definition(self, node):
         constraints = []
 
-        if definition.children('object'):
-            for pair in definition.pair:
-                # The pair has only one child.
-                constraints.extend(handle_token(pair))
+        for key_value in node.key_value:
+            constraints.extend(self._key_value(key_value))
 
-        definitions.append(Definition(name=definition.name[0]), constraints=constraints)
+        for value in node.value:
+            constraints.extend(self._value(value))
 
-    print definitions
+        return self.Definition(name=node.find('name')[0], constraints=constraints)
 
-def handle_array(node):
-    # TODO: actually write this bad boy.
-    return []
+    @staticmethod
+    def _array(node):
+        # TODO: actually write this bad boy.
+        return []
 
-def handle_value(node):
-    constraints = []
+    def _value(self, val):
+        constraints = []
 
-    for val in node.children('value'):
         # only one of the following calls should result in a non-empty list
-        constraints.extend(handle_object(val))
-        constraints.extend(handle_array(val))
-        constraints.extend(handle_primitive(val))
+        constraints.extend(self._object(val))
+        constraints.extend(self._array(val))
+        constraints.extend(self._primitive(val))
 
+        return constraints
 
-def handle_object(node):
-    for obj in node.children('object'):
-        object_constraints = []
-        object_constraints.extend(handle_pair(obj))
+    def _object(self, obj):
+        constraints = []
 
-    constraints = [Constraint(type=DSLType.object, value=object_constraints, repeated=False)]
-    constraints.extend(handle_pair(node))
+        for pair in obj.pair:
+            object_constraints = self._pair(pair)
+            constraints.append(self.Constraint(type=ConstraintType.object, value=object_constraints, repeated=False))
 
-def handle_pair(node):
-    constraints = []
+        return constraints
 
-    for pair in node.children('pair'):
-        token_constraints = handle_token(pair)
-        key_value_constraints = handle_key_value(pair)
+    def _pair(self, pair):
+        constraints = []
 
+        for token in pair.token:
+            constraints.extend(self._token(token))
 
-def handle_key_value(node):
-    for kv in node.children('key_value'):
-        key = kv.node.children[0]
-        value = kv.node.children[2]
+        for kv in pair.key_value:
+            constraints.extend(self._key_value(kv))
 
-        print key.text, value.text
+        return constraints
 
-def handle_token(node):
-    constraints = []
+    def _key_value(self, node):
+        constraints = []
 
-    for token in node.children('token'):
-        if token.repeated_token:
-            constraints.append(Constraint(value=token.token_text[0], type=DSLType.token, repeated=True))
-        if token.one_token:
-            constraints.append(Constraint(value=token.token_text[0], type=DSLType.token, repeated=False))
+        children = list(node)
 
-    return constraints
+        key = children[0]
+        value = children[2]
 
+        constraints.append(self.Constraint(type=ConstraintType.key, value=key, repeated=False))
+        constraints.extend(self._value(value))
+        constraints.extend(self._token(value))
 
-def handle_primitive(node):
-    constraints = []
+        return constraints
 
-    for n in node.children('primitive'):
-        if n.string:
-            type = DSLType.string
-        elif n.number:
-            type = DSLType.number
-        elif n.boolean:
-            type = DSLType.boolean
-        elif n.null:
-            type = DSLType.null
+    def _token(self, node):
+        constraints = []
 
-        constraints.append(Constraint(value=n.text, type=type, repeated=False))
+        for token in node.token:
+            if token.repeated_token:
+                constraints.append(self.Constraint(value=token.token_text[0], type=ConstraintType.token, repeated=True))
+            if token.one_token:
+                constraints.append(self.Constraint(value=token.token_text[0], type=ConstraintType.token, repeated=False))
 
-    return constraints
+        return constraints
+
+    @staticmethod
+    def _primitive(self, node):
+        constraints = []
+
+        for n in node.children('primitive'):
+            if n.string:
+                dsl_type = ConstraintType.string
+            elif n.number:
+                dsl_type = ConstraintType.number
+            elif n.boolean:
+                dsl_type = ConstraintType.boolean
+            elif n.null:
+                dsl_type = ConstraintType.null
+
+            constraints.append(self.Constraint(value=n.text, type=dsl_type, repeated=False))
+
+        return constraints
 
 
 

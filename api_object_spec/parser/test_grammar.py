@@ -4,27 +4,26 @@ import unittest
 
 
 class TestGrammar(unittest.TestCase):
+    def setUp(self):
+        self.constraint_definition = grammar.ConstraintDefinition()
+
     def test_token(self):
-        result = grammar.dsl['token'].parse('<WUTEVER>')
-
-        self.assertEqual(result.expr_name, 'token')
-
-        model = grammar.Model(result)
-
+        result = self.constraint_definition.model('<WUTEVER>', rule="token")
+        self.assertEqual(result.type, 'token')
 
     def test_repeated_token(self):
         result = grammar.dsl['token'].parse('<WUTEVER>...')
-        model = grammar.Model(result)
-
+        self.assertEqual(result.type, 'repeated_token')
 
     def test_object(self):
-        tokenvalue = grammar.dsl['object'].parse('{"wutever": "<mang>"}')
-        simple = grammar.dsl['object'].parse('{"wutever": "mang"}')
-        bothtoken = grammar.dsl['object'].parse('{<mang>}')
+        tokenvalue = self.constraint_definition.model('{"wutever": "<mang>"}', rule='object')
 
-        grammar.handle_pair(grammar.Model(tokenvalue))
-        grammar.handle_pair(grammar.Model(simple))
-        grammar.handle_pair(grammar.Model(bothtoken))
+        # simple = grammar.dsl['object'].parse('{"wutever": "mang"}')
+        # bothtoken = grammar.dsl['object'].parse('{<mang>}')
+
+        self.constraint_definition._pair(tokenvalue)
+        # grammar.handle_pair(grammar.Model(simple))
+        # grammar.handle_pair(grammar.Model(bothtoken))
 
 
     def test_key_value(self):
