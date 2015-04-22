@@ -87,7 +87,7 @@ class Model(object):
         elif name == 'text':
             return self.node.text.strip()
         elif name not in dsl:
-            raise AttributeError('no such expr_type {}'.format(name))
+            raise AttributeError('Attribute "{}" not found'.format(name))
 
         # descends through spaces and through unnamed groups. Unnamed matches are usually regex, or expressions of
         # named groups.
@@ -104,7 +104,7 @@ class Model(object):
         return [Model(result) for result in traverse(self.node, MatchExprName(expr_name=item))]
 
     def __repr__(self):
-        return '<grammar.Model: {} with type {}>'.format(self.text, self.type)
+        return '<grammar.Model: "{}" with type {}>'.format(self.text, self.type)
 
 
 class MatchExprName(object):
@@ -145,7 +145,7 @@ class ConstraintType(Enum):
     boolean = 4
     null = 5
     number = 7
-    token = 9
+    token = 8
     repeated_token = 9
     key_value = 10  # A pair of key/value constraints. Done like this because they are connected (the value constraint
                     #  needs the key constraint to be meaningful)
@@ -164,7 +164,8 @@ class ConstraintDefinition(object):
 
         definitions = []
 
-        for definition in model.definitions:
+        for definition in model.definition:
+            print definition.text
             definitions.append(self._definition(definition))
 
         return definitions
@@ -187,7 +188,7 @@ class ConstraintDefinition(object):
         for value in node.value:
             constraints.extend(self._value(value))
 
-        return Definition(name=node.find('name')[0], constraints=constraints)
+        return Definition(name=node.descend('name')[0], constraints=constraints)
 
     @staticmethod
     def _array(node):
@@ -237,10 +238,10 @@ class ConstraintDefinition(object):
         key = children[0]
         value = children[1]
 
-        constraints.append(Constraint(type=ConstraintType.key, value=key.text))
+        constraints.append(Constraint(type=ConstraintType.key, value=key.text[1:-1]))
 
         if value.type == 'one_token':
-            constraints.extend(self._one_token(value))
+            constraints.append(self._one_token(value))
 
         if value.type == 'value':
             constraints.extend(self._value(value))
@@ -266,8 +267,11 @@ class ConstraintDefinition(object):
     def _primitive(n):
         constraints = []
 
+        value = n.text
+
         if n.string:
             dsl_type = ConstraintType.string
+            value = n.text[1:-1]
         elif n.number:
             dsl_type = ConstraintType.number
         elif n.boolean:
@@ -277,11 +281,7 @@ class ConstraintDefinition(object):
         else:
             raise ValueError('{} is not a primitive'.format(n))
 
-        constraints.append(Constraint(value=n.text, type=dsl_type))
-
-        return constraints
-
-
+        return [Constraint(value=value, type=dsl_type)]
 
 
 
