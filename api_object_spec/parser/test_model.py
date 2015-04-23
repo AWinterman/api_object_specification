@@ -13,6 +13,9 @@ assert result.match({'wutever': 'yes'})
 
 t = Tree('''
     token = "boogie": <number>
+    token = "wutever": "man"
+    token = "yessir": "dressir"
+
     pair = {<token>...}
 ''')
 
