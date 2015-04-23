@@ -25,9 +25,11 @@ class TestGrammar(unittest.TestCase):
             constraints=[model.UserRefConstraint('b', ['a', 'b', 'c']), model.UserRefConstraint('e', [1, 2, 3])]
         )._array(result)
 
+        print array_constraint.reify()
+
         self.assertEqual(type(array_constraint), model.ArrayConstraint)
         self.assertEqual(len(array_constraint.constraints), 4)
-        print array_constraint.reify()
+
         self.assertTrue(array_constraint.match(['a', 'c', {'c': 'd'}, 1, 2, 3, 1, 2, 3]))
         # self.assertEqual(array_constraint.value[0].value[0].value, 0)
         # self.assertEqual(array_constraint.value[0].value[0].type, grammar.Type.index)
