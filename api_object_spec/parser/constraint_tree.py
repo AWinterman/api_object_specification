@@ -2,7 +2,6 @@ import model
 import grammar
 import defaults
 
-
 class Tree(object):
     def __init__(self, jsl, constraints=defaults.constraints):
         grammar_model = self.grammar_model(jsl)

@@ -87,8 +87,6 @@ class ArrayElementConstraint(Constraint):
         return self.constraint.reify()
 
 
-
-
 class ArrayConstraint(Constraint):
     def __init__(self, constraints):
         self.constraints = constraints
@@ -108,7 +106,6 @@ class ArrayConstraint(Constraint):
                 return False
 
         return True
-
 
 
 class StringConstraint(Constraint):
@@ -182,8 +179,9 @@ class TokenConstraint(Constraint):
         self.definitions = definitions[name]
 
     def reify(self):
-        # todo, reify as something more appropriate
-        return "<" + self.name + ">"
+        # todo: which definition do you use when there are multiple options?
+        for definition in self.definitions:
+            return definition.constraints.reify()
 
     def match(self, data):
         # this is the real meat and potatoes
@@ -195,14 +193,9 @@ class TokenConstraint(Constraint):
         return False
 
 
-class RepeatedTokenConstraint(Constraint):
+class RepeatedTokenConstraint(TokenConstraint):
     def __init__(self, name, definitions):
-        self.name = name
-        self.definition = definitions[name]
-
-    def reify(self):
-        # todo, reify as something more appropriate
-        return "<" + self.name + ">" + "..."
+        TokenConstraint.__init__(self, name, definitions)
 
     def match(self, data):
         return all(

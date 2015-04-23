@@ -1,4 +1,4 @@
-from parser import model
+import model
 
 constraints = (
     model.ObjectRefConstraint("object"),
