@@ -21,27 +21,19 @@ class Constraint(object):
     def match(self, data):
         return
 
-    @staticmethod
-    def wrap(obj):
-        if isinstance(obj, Constraint):
-            return obj
-        else:
-            return {
-                list: ArrayConstraint(obj),
-                dict: ObjectConstraint(obj),
-                str: StringConstraint(obj),
-                float: NumberConstraint(obj),
-                bool: BooleanConstraint(obj),
-                None: NullConstraint()
-            }[type(obj)]
-
 
 class RefConstraint(Constraint):
     def __init__(self, name):
         self.name = name
+
     def reify(self):
         # todo: combine this logic with token?
         return "<" + self.name + ">"
+
+    def match(self):
+        # TODO: Add actuall method here.
+        pass
+
 
 class ObjectConstraint(Constraint):
     def __init__(self, pairs):
@@ -71,6 +63,7 @@ class ObjectRefConstraint(RefConstraint):
     def match(self, data):
         return isinstance(data, dict)
 
+
 class KeyConstraint(Constraint):
     def __init__(self, key):
         self.key = key
@@ -80,6 +73,7 @@ class KeyConstraint(Constraint):
 
     def match(self, data):
         return self.key in data
+
 
 class ArrayElementConstraint(Constraint):
     def __init__(self, constraint, index):
@@ -117,58 +111,77 @@ class ArrayConstraint(Constraint):
 class StringConstraint(Constraint):
     def __init__(self, string):
         self.string = string
+
     def reify(self):
         return self.string
+
     def match(self, data):
         return self.string == data
+
 
 class StringRefConstraint(RefConstraint):
     def __init__(self, name):
         RefConstraint.__init__(self, name)
+
     def match(self, data):
         return isinstance(data, str)
+
 
 class NumberConstraint(Constraint):
     def __init__(self, number):
         self.number = number
+
     def reify(self):
         return self.number
+
     def match(self, data):
         return self.number == data
+
 
 class NumberRefConstraint(RefConstraint):
     def __init__(self, name):
         RefConstraint.__init__(self, name)
+
     def match(self, data):
         return isinstance(data, (float, int))
+
 
 class BooleanConstraint(Constraint):
     def __init__(self, boolean):
         self.boolean = boolean
+
     def reify(self):
         return self.boolean
+
     def match(self, data):
         return self.boolean == data
+
 
 class BooleanRefConstraint(RefConstraint):
     def __init__(self, name):
         RefConstraint.__init__(self, name)
+
     def match(self, data):
         return isinstance(data, bool)
+
 
 class NullConstraint(Constraint):
     def reify(self):
         return None
+
     def match(self, data):
         return data == None
+
 
 class TokenConstraint(Constraint):
     def __init__(self, name, definitions):
         self.name = name
         self.definitions = definitions[name]
+
     def reify(self):
         # todo, reify as something more appropriate
         return "<" + self.name + ">"
+
     def match(self, data):
         # this is the real meat and potatoes
         # look up the definition associated with the token name
@@ -177,6 +190,7 @@ class TokenConstraint(Constraint):
             if definition.constraints.match(data):
                 return True
         return False
+
 
 class RepeatedTokenConstraint(Constraint):
     def __init__(self, name):
@@ -190,6 +204,7 @@ class RepeatedTokenConstraint(Constraint):
         # not yet
         return False
 
+
 class KeyValueConstraint(Constraint):
     def __init__(self, constraint):
         # TODO: validate that the constraint is either a pair or a token or repeated token which maps to a pairs
@@ -200,6 +215,7 @@ class KeyValueConstraint(Constraint):
 
     def match(self, data):
         return self.constraint.match(data)
+
 
 class PairConstraint():
     def __init__(self, key, value):
@@ -218,12 +234,14 @@ class PairConstraint():
                 return True
         return False
 
+
 class ConstraintModel(object):
     def __init__(self, jsl):
         grammar_model = self.grammar_model(jsl)
         self.definitions = {}
 
-        for ref_constraint in [ObjectRefConstraint("object"), StringRefConstraint("string"), NumberRefConstraint("number"),
+        for ref_constraint in [ObjectRefConstraint("object"), StringRefConstraint("string"),
+                               NumberRefConstraint("number"),
                                BooleanRefConstraint("boolean")]:
             self._add_definition(Definition(name=ref_constraint.name, constraints=ref_constraint))
 
@@ -405,7 +423,9 @@ foo = {"color":<red>, "doge":<wow>, "bar":<hyderabad>, "my name is":<name>, "nea
 model = ConstraintModel(sampleJSL)
 
 print(model.generate("foo"))
-print(model.validate("foo", {"color":{"subjective":True, "rgb":"1 0 0"}, "doge":{"such":"pair"}, "bar":{"anynumber":42}, "my name is":"randy", "neat":12.59199, "cool":{"yay":"radical"}}))
+print(model.validate("foo",
+                     {"color": {"subjective": True, "rgb": "1 0 0"}, "doge": {"such": "pair"}, "bar": {"anynumber": 42},
+                      "my name is": "randy", "neat": 12.59199, "cool": {"yay": "radical"}}))
 
 print(model.generate('things'))
 print model.validate('things', ['food', 'barf', 'dear friends'])
