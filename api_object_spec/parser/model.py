@@ -10,12 +10,16 @@ class Constraint(object):
 
     @abc.abstractmethod
     def reify(self):
-        return
+        pass
 
     # whether the constraint matches the passed json data
     @abc.abstractmethod
     def match(self, data):
-        return
+        pass
+
+    def __repr__(self):
+        return '<ArrayConstraint {}>'.format(str(self.reify()))
+
 
 
 class RefConstraint(Constraint):
@@ -83,6 +87,8 @@ class ArrayElementConstraint(Constraint):
         return self.constraint.reify()
 
 
+
+
 class ArrayConstraint(Constraint):
     def __init__(self, constraints):
         self.constraints = constraints
@@ -102,6 +108,7 @@ class ArrayConstraint(Constraint):
                 return False
 
         return True
+
 
 
 class StringConstraint(Constraint):
@@ -189,21 +196,30 @@ class TokenConstraint(Constraint):
 
 
 class RepeatedTokenConstraint(Constraint):
-    def __init__(self, name):
+    def __init__(self, name, definitions):
         self.name = name
+        self.definition = definitions[name]
 
     def reify(self):
         # todo, reify as something more appropriate
         return "<" + self.name + ">" + "..."
 
     def match(self, data):
-        # not yet
-        return False
+        return all(
+            any(definition.constraints.match(element) for definition in self.definitions[self.name])
+            for element in data
+        )
 
 
 class KeyValueConstraint(Constraint):
     def __init__(self, constraint):
-        # TODO: validate that the constraint is either a pair or a token or repeated token which maps to a pairs
+        if not any([
+                isinstance(constraint, RepeatedTokenConstraint),
+                isinstance(constraint, TokenConstraint),
+                isinstance(constraint, PairConstraint),
+        ]):
+            raise ValueError('"{}" is not a repeated token, a token, or a pair constraint'.format(Constraint))
+
         self.constraint = constraint
 
     def reify(self):

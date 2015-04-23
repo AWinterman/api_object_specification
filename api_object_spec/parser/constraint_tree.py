@@ -1,15 +1,14 @@
 import model
 import grammar
+import defaults
 
 
-class ConstraintModel(object):
-    def __init__(self, jsl):
+class Tree(object):
+    def __init__(self, jsl, constraints=defaults.constraints):
         grammar_model = self.grammar_model(jsl)
         self.definitions = {}
 
-        for ref_constraint in [model.ObjectRefConstraint("object"), model.StringRefConstraint("string"),
-                               model.NumberRefConstraint("number"),
-                               model.BooleanRefConstraint("boolean")]:
+        for ref_constraint in constraints:
             self._add_definition(model.Definition(name=ref_constraint.name, constraints=ref_constraint))
 
         for definition in grammar_model.definition:
@@ -180,19 +179,19 @@ sampleJSL = """
 wow = "such":"pair"
 name = "randy"
 hyderabad = {"anynumber": <number>}
-things = ["foo", "barf", "dear friends"]
+things = ["foo", "barf", "dear friends", <string>...]
 red = {"subjective":true, "rgb":"1 0 0"}
 foo = {"color":<red>, "doge":<wow>, "bar":<hyderabad>, "my name is":<name>, "neat":12.59199, "cool":{"yay":"radical"}}
 
 """
-
-model = ConstraintModel(sampleJSL)
-
-print(model.generate("foo"))
-print(model.validate("foo",
-                     {"color": {"subjective": True, "rgb": "1 0 0"}, "doge": {"such": "pair"}, "bar": {"anynumber": 42},
-                      "my name is": "randy", "neat": 12.59199, "cool": {"yay": "radical"}}))
-
-print(model.generate('things'))
-print model.validate('things', ['food', 'barf', 'dear friends'])
-print model.generate('wow')
+#
+# model = Tree(sampleJSL)
+#
+# print(model.generate("foo"))
+# print(model.validate("foo",
+#                      {"color": {"subjective": True, "rgb": "1 0 0"}, "doge": {"such": "pair"}, "bar": {"anynumber": 42},
+#                       "my name is": "randy", "neat": 12.59199, "cool": {"yay": "radical"}}))
+#
+# print(model.generate('things'))
+# print model.validate('things', ['food', 'barf', 'dear friends', 'wutever'])
+# print model.generate('wow')
