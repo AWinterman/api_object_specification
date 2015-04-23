@@ -15,8 +15,17 @@ t = Tree('''
     token = "boogie": <number>
     token = "wutever": "man"
     token = "yessir": "dressir"
+    token = "yessir": <object>
 
     pair = {<token>...}
 ''')
 
 print t.generate('pair')
+
+examples = [
+    {"yessir": {}, "yessir": "dressir"},
+    {'boogie': 1}
+]
+
+for e in examples:
+    assert t.validate('pair', e)
