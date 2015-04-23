@@ -6,8 +6,6 @@ import configuration
 
 Definition = namedtuple('Definition', ['constraints', 'name'])
 
-def make_definition(constraint):
-    return Definition(name=constraint.name, constraints=Constraint)
 
 # IR nodes and such
 class Constraint(object):
@@ -59,8 +57,14 @@ class ObjectConstraint(Constraint):
     def reify(self):
         output = {}
         for key_value in self.key_values:
-            k, v = key_value.reify()
+            if isinstance(key_value.constraint, RepeatedTokenConstraint):
+                for k, v in key_value.constraint.reify():
+                    output[k] = v
+            else:
+                k, v = key_value.reify()
+
             output[k] = v
+
         return output
 
     def match(self, data):

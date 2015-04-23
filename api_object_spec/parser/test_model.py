@@ -1,4 +1,5 @@
 import model
+from constraint_tree import Tree
 from defaults import definitions
 
 result = model.KeyValueConstraint(
@@ -8,5 +9,11 @@ result = model.KeyValueConstraint(
     )
 )
 print result.reify()
+assert result.match({'wutever': 'yes'})
 
-print result.match({'wutever': 'yes'})
+t = Tree('''
+    token = "boogie": <number>
+    pair = {<token>...}
+''')
+
+print t.generate('pair')
