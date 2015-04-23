@@ -20,10 +20,15 @@ class TestGrammar(unittest.TestCase):
     def test_array(self):
         result = self.constraint_definition.grammar_model('["a", <b>, {"c": "d"}, <e>...]', rule="array")
 
-        array_constraint = self.constraint_definition._array(result)
+        array_constraint = Tree(
+            '',
+            constraints=[model.UserRefConstraint('b', ['a', 'b', 'c']), model.UserRefConstraint('e', [1, 2, 3])]
+        )._array(result)
 
         self.assertEqual(type(array_constraint), model.ArrayConstraint)
-        self.assertEqual(len(array_constraint.value), 4)
+        self.assertEqual(len(array_constraint.constraints), 4)
+
+        self.assertTrue(array_constraint.match(['a', 'c', {'c': 'd'}, 1, 2, 3, 1, 2, 3]))
         # self.assertEqual(array_constraint.value[0].value[0].value, 0)
         # self.assertEqual(array_constraint.value[0].value[0].type, grammar.Type.index)
         # self.assertEqual(array_constraint.value[0].value[1].value, grammar.Constraint(value='a', type=grammar.Type.string))

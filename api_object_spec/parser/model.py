@@ -36,6 +36,18 @@ class RefConstraint(Constraint):
         # TODO: Add actuall method here.
         pass
 
+class UserRefConstraint(RefConstraint):
+    def __init__(self, name, possible_values):
+        self.name = name
+        self.possible_values = possible_values
+
+    def match(self, data):
+        return data in self.possible_values
+
+    def reify(self):
+        return random.choice(self.possible_values)
+
+
 
 class ObjectConstraint(Constraint):
     def __init__(self, pairs):

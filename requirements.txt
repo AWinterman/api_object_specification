@@ -1,4 +1,5 @@
 -f http://pulp.prod.urbanairship.com/repos/python-packages/
 enum34==1.0.4
 parsimonious==0.6.2
+rstr==2.1.3
 wsgiref==0.1.2
