@@ -19,6 +19,9 @@ class Constraint(object):
     def match(self, data):
         pass
 
+    def __repr__(self):
+        return '<{} {}>'.format(type(self), str(self.reify()))
+
 
 class RefConstraint(Constraint):
     def __init__(self, name):
@@ -70,6 +73,9 @@ class ObjectRefConstraint(RefConstraint):
     def __init__(self, name):
         RefConstraint.__init__(self, name)
 
+    def reify(self):
+        return {"foo":"bar"}
+
     def match(self, data):
         return isinstance(data, dict)
 
@@ -90,6 +96,7 @@ class ArrayElementConstraint(Constraint):
         self.constraint = constraint
         self.index = index
 
+<<<<<<< HEAD
     def match(self, array):
         print isinstance(self.constraint, RepeatedTokenConstraint), self.constraint
         if not isinstance(self.constraint, RepeatedTokenConstraint):
@@ -104,8 +111,13 @@ class ArrayElementConstraint(Constraint):
 
         return True
 
+=======
+>>>>>>> e777e700efd65da3c2a17cb99a8d20ae87089a1b
     def reify(self):
         return self.constraint.reify()
+
+    def match(self, array):
+        return self.constraint.match(array[self.index])
 
 
 class ArrayConstraint(Constraint):
@@ -132,6 +144,15 @@ class ArrayConstraint(Constraint):
 
         return True
 
+class ArrayRefConstraint(RefConstraint):
+    def __init__(self, name):
+        RefConstraint.__init__(self, name)
+
+    def reify(self):
+        return ["foo", "bar", 1, 2, 3]
+
+    def match(self, data):
+        return isinstance(data, list)
 
 class StringConstraint(Constraint):
     def __init__(self, string):
@@ -147,6 +168,9 @@ class StringConstraint(Constraint):
 class StringRefConstraint(RefConstraint):
     def __init__(self, name):
         RefConstraint.__init__(self, name)
+
+    def reify(self):
+        return "foobar"
 
     def match(self, data):
         return isinstance(data, str)
@@ -167,6 +191,9 @@ class NumberRefConstraint(RefConstraint):
     def __init__(self, name):
         RefConstraint.__init__(self, name)
 
+    def reify(self):
+        return 123
+
     def match(self, data):
         return isinstance(data, (float, int))
 
@@ -185,6 +212,9 @@ class BooleanConstraint(Constraint):
 class BooleanRefConstraint(RefConstraint):
     def __init__(self, name):
         RefConstraint.__init__(self, name)
+
+    def reify(self):
+        return random.choice([True, False])
 
     def match(self, data):
         return isinstance(data, bool)
