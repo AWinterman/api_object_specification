@@ -202,14 +202,15 @@ class ConstraintDefinition(object):
         return model
 
     def _definition(self, node):
-        constraints = []
         kv = node.key_value
-        val = node.value
+        val = node.valu e
 
         if kv:
             constraints = Constraint(type=Type.key_value, value=self._key_value(*kv))
-        if val:
+        elif val:
             constraints = self._value(*val)
+        else:
+            raise ValueError("{} is not a valid definition body".format(node))
 
         return Definition(name=node.descend('name')[0].text, constraints=constraints)
 

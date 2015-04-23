@@ -75,8 +75,7 @@ class TestGrammar(unittest.TestCase):
         indent = '    '
         for constraints, name in result:
             print name
-            for c in constraints:
-                print indent + str(c)
+            print indent + str(constraints)
 
 
 
