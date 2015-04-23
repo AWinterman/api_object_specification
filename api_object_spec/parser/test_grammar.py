@@ -74,21 +74,6 @@ class TestGrammar(unittest.TestCase):
 
         print (type.is_token, type.is_leaf, type.has_children, type.name)
 
-    def test_language(selfself):
-        spec = '''
-            apathetics = [<apathy>...]
-            apathy = {"asif": "icare", "number": 1}
-            apathy = {"deeper": {"nesting": {"of": "obj"}}, "another": "key"}
-            apathy = {<token>...}
-            token = "god": "zeus"
-            token = "nymph": "echo"
-            token = "man": <human>
-        '''
-
-        lang = grammar.Language(spec)
-
-        print lang
-
 
 
 

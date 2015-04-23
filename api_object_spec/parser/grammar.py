@@ -44,8 +44,10 @@ dsl = Grammar(DSL)
 
 Condition = namedtuple("Condition", ["descend", "match"])
 
+
 def get_children(item):
     return item.children
+
 
 def traverse(node, evaluate, depth_first=True, next_generation=get_children):
     trees = [node]
@@ -137,22 +139,27 @@ class Type(Enum):
     """
     Defines the various types of constraints allowed.
     """
+    # JSON collection types
     object = 1
     array = 2
+
+    # Literals
     string = 3
     boolean = 4
     null = 5
     number = 7
+
+    # Tokens
     token = 8
     repeated_token = 9
 
     # A pair of key/value constraints. Done like this because they are connected (the value constraint
     # needs the key constraint to be meaningful)
     key_value = 10
-
     key = 11  # Indicates an object/array must have the given key/index
     value = 12  # Indicates the value constraints at a given key/index.
 
+    # The same as the above except for array elements.
     array_element = 13
     index = 14
     element = 15
@@ -219,8 +226,10 @@ class ConstraintDefinition(object):
 
             if value:
                 el = self._value(*value)
-            if token:
+            elif token:
                 el = self._token(*token)
+            else:
+                raise ValueError('"{}" is an illegal element'.format(element))
 
             index_constraint = Constraint(type=Type.index, value=index)
             element_constraint = Constraint(type=Type.element, value=el)
@@ -245,7 +254,7 @@ class ConstraintDefinition(object):
         if primitive:
             return self._primitive(*primitive)
 
-        raise ValueError('{} is not a value'.format(val))
+        raise ValueError('"{}" is not a value'.format(val))
 
     def _object(self, obj):
         constraints = []
@@ -262,11 +271,10 @@ class ConstraintDefinition(object):
         # using unpacking here, should only get one element, if you have more it will throw.
         if token:
             return Constraint(type=Type.key_value, value=self._token(*token))
-
         if kv:
             return Constraint(type=Type.key_value, value=self._key_value(*kv))
 
-        raise ValueError('{} is not a pair'.format(pair))
+        raise ValueError('"{}" is not a pair'.format(pair))
 
     def _key_value(self, node):
         constraints = []
@@ -280,9 +288,10 @@ class ConstraintDefinition(object):
 
         if value.type == 'one_token':
             constraints.append(self._one_token(value))
-
-        if value.type == 'value':
+        elif value.type == 'value':
             constraints.append(self._value(value))
+        else:
+            raise ValueError('node "{}" is not a valid key/value pair'.format(node))
 
         return constraints
 
@@ -291,6 +300,8 @@ class ConstraintDefinition(object):
             return self._repeated_token(token)
         if token.one_token:
             return self._one_token(token)
+
+        raise ValueError('{} is not a token'.format(token))
 
     @staticmethod
     def _one_token(token):
@@ -315,20 +326,6 @@ class ConstraintDefinition(object):
         elif n.null:
             dsl_type = Type.null
         else:
-            raise ValueError('{} is not a primitive'.format(n))
+            raise ValueError('"{}" is not a primitive'.format(n))
 
         return Constraint(value=value, type=dsl_type)
-
-
-class Language(object):
-    default_tokens = (
-        'string',
-        'boolean',
-        'number',
-        'null',
-        'object',
-        'array',
-    )
-
-    def __init__(self, definitions):
-        self.definitions = definitions
