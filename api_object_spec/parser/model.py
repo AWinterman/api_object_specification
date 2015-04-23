@@ -193,12 +193,10 @@ class TokenConstraint(Constraint):
         self.definitions = definitions[name]
 
     def reify(self):
-        # todo, reify as something more appropriate
-        return "<" + self.name + ">"
+        # todo: do we actually want to make random choices here?
+        return random.choice(self.definitions).constraints.reify()
 
     def match(self, data):
-        # this is the real meat and potatoes
-        # look up the definition associated with the token name
 
         for definition in self.definitions:
             if definition.constraints.match(data):
@@ -207,6 +205,9 @@ class TokenConstraint(Constraint):
 
 
 class RepeatedTokenConstraint(TokenConstraint):
+    def __init__(self, name, definitions):
+        TokenConstraint.__init__(self, name, definitions)
+
     def reify(self):
         count = range(0, random.randint(0, configuration.max_generation_count))
         return [super(RepeatedTokenConstraint, self).reify() for _ in count]
