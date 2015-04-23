@@ -49,6 +49,7 @@ class TestGrammar(unittest.TestCase):
         plain = self.constraint_definition.model('"so": "it goes"', rule='pair')
         with_token = self.constraint_definition.model('"so": <token>', rule='pair')
         with_object = self.constraint_definition.model('"this": {"object": null}', rule='pair')
+        token_first = self.constraint_definition.model('<token>: true', rule='pair')
 
     def test_definition(self):
         result = self.constraint_definition('pair = "one": "two"')
@@ -70,6 +71,7 @@ class TestGrammar(unittest.TestCase):
             token = "god": "zeus"
             token = "nymph": "echo"
             token = "man": <human>
+            token = <animal_name>: "animal"
         '''.strip())
 
         indent = '    '
