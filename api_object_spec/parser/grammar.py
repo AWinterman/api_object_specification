@@ -203,7 +203,7 @@ class ConstraintDefinition(object):
 
     def _definition(self, node):
         kv = node.key_value
-        val = node.valu e
+        val = node.value
 
         if kv:
             constraints = Constraint(type=Type.key_value, value=self._key_value(*kv))
@@ -331,3 +331,4 @@ class ConstraintDefinition(object):
             raise ValueError('"{}" is not a primitive'.format(n))
 
         return Constraint(value=value, type=dsl_type)
+
