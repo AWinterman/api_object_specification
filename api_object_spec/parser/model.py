@@ -91,7 +91,18 @@ class ArrayElementConstraint(Constraint):
         self.index = index
 
     def match(self, array):
-        return self.constraint.match(array[self.index])
+        print isinstance(self.constraint, RepeatedTokenConstraint), self.constraint
+        if not isinstance(self.constraint, RepeatedTokenConstraint):
+            return self.constraint.match(array[self.index])
+
+        i = self.index
+
+        while i < array.length:
+            print i, array[i]
+            if not self.constraint.match(array[i]):
+                return False
+
+        return True
 
     def reify(self):
         return self.constraint.reify()
@@ -115,6 +126,7 @@ class ArrayConstraint(Constraint):
             return False
 
         for element in self.constraints:
+            print element.reify()
             if not element.match(data):
                 return False
 
@@ -245,8 +257,9 @@ class PairConstraint():
         return kr, vr
 
     def match(self, data):
+        key = self.key.reify()
         if self.key.match(data):
             # gross
-            if self.value.match(data[self.key.key]):
+            if self.value.match(data[self.key.reify()]):
                 return True
         return False

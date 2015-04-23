@@ -61,14 +61,10 @@ class TestGrammar(unittest.TestCase):
         token_first = self.constraint_definition.grammar_model('<token>: true', rule='pair')
 
     def test_definition(self):
-        result = self.constraint_definition('pair = "one": "two"')
+        result = Tree('pair = "one": "two"')
 
-        self.assertEqual(result[0].name, 'pair')
-        self.assertEqual(result[0].constraints.type, grammar.Type.key_value)
-        self.assertEqual(result[0].constraints.value[0].value, 'one')
-        self.assertEqual(result[0].constraints.value[0].type, grammar.Type.key)
-        self.assertEqual(result[0].constraints.value[1].value, 'two')
-        self.assertEqual(result[0].constraints.value[1].type, grammar.Type.string)
+        self.assertEqual(result.generate('pair'), ('one', 'two'))
+
 
     def test_call(self):
         result = self.constraint_definition(
