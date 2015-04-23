@@ -1,4 +1,5 @@
 import model
+from collections import defaultdict
 
 constraints = (
     model.ObjectRefConstraint("object"),
@@ -7,4 +8,4 @@ constraints = (
     model.BooleanRefConstraint("boolean")
 )
 
-definitions = {c.name: [model.Definition(name=c.name, constraints=c)] for c in constraints}
+definitions = defaultdict(list, {c.name: [model.Definition(name=c.name, constraints=c)] for c in constraints})

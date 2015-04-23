@@ -19,10 +19,14 @@ class TestGrammar(unittest.TestCase):
 
     def test_array(self):
         result = self.constraint_definition.grammar_model('["a", <b>, {"c": "d"}, <e>...]', rule="array")
+        constraints = [
+            model.UserRefConstraint('b', ['a', 'b', 'c']),
+            model.UserRefConstraint('e', [1, 2, 3])
+        ]
+
 
         array_constraint = Tree(
-            '',
-            constraints=[model.UserRefConstraint('b', ['a', 'b', 'c']), model.UserRefConstraint('e', [1, 2, 3])]
+            '', constraints
         )._array(result)
 
         print array_constraint.reify()

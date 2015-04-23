@@ -2,15 +2,14 @@ import model
 import grammar
 import defaults
 
-from collections import defaultdict
 
 class Tree(object):
-    def __init__(self, jsl, definitions=defaults.definitions):
+    def __init__(self, jsl, constraints=defaults.constraints):
         grammar_model = self.grammar_model(jsl)
-        self.definitions = defaultdict(list)
+        self.definitions = {}
 
-        for definition in definitions:
-            self._add_definition(definition)
+        for ref_constraint in constraints:
+            self._add_definition(model.Definition(name=ref_constraint.name, constraints=ref_constraint))
 
         for definition in grammar_model.definition:
             constraint_definition = self._definition(definition)
@@ -29,6 +28,8 @@ class Tree(object):
     def _add_definition(self, definition):
         if definition.name in self.definitions:
             self.definitions[definition.name].append(definition)
+        else:
+            self.definitions[definition.name] = [definition]
 
 
     @staticmethod

@@ -8,3 +8,5 @@ result = model.KeyValueConstraint(
     )
 )
 print result.reify()
+
+print result.match({'wutever': 'yes'})

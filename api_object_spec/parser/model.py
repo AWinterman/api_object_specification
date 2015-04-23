@@ -6,6 +6,9 @@ import configuration
 
 Definition = namedtuple('Definition', ['constraints', 'name'])
 
+def make_definition(constraint):
+    return Definition(name=constraint.name, constraints=Constraint)
+
 # IR nodes and such
 class Constraint(object):
     __metaclass__ = abc.ABCMeta
@@ -96,9 +99,7 @@ class ArrayElementConstraint(Constraint):
         self.constraint = constraint
         self.index = index
 
-<<<<<<< HEAD
     def match(self, array):
-        print isinstance(self.constraint, RepeatedTokenConstraint), self.constraint
         if not isinstance(self.constraint, RepeatedTokenConstraint):
             return self.constraint.match(array[self.index])
 
@@ -111,8 +112,6 @@ class ArrayElementConstraint(Constraint):
 
         return True
 
-=======
->>>>>>> e777e700efd65da3c2a17cb99a8d20ae87089a1b
     def reify(self):
         return self.constraint.reify()
 
@@ -144,6 +143,7 @@ class ArrayConstraint(Constraint):
 
         return True
 
+
 class ArrayRefConstraint(RefConstraint):
     def __init__(self, name):
         RefConstraint.__init__(self, name)
@@ -153,6 +153,7 @@ class ArrayRefConstraint(RefConstraint):
 
     def match(self, data):
         return isinstance(data, list)
+
 
 class StringConstraint(Constraint):
     def __init__(self, string):
@@ -252,10 +253,8 @@ class RepeatedTokenConstraint(TokenConstraint):
 
     def reify(self):
         count = range(0, random.randint(0, configuration.max_generation_count))
-        return [super(RepeatedTokenConstraint, self).reify() for _ in count]
 
-    def match(self, data):
-        return all(super(RepeatedTokenConstraint, self).match(element) for element in data)
+        return [super(RepeatedTokenConstraint, self).reify() for _ in count]
 
 
 class KeyValueConstraint(Constraint):
@@ -287,9 +286,6 @@ class PairConstraint():
         return kr, vr
 
     def match(self, data):
-        key = self.key.reify()
-        if self.key.match(data):
-            # gross
-            if self.value.match(data[self.key.reify()]):
-                return True
-        return False
+        conditions = any(self.key.match(k) and self.value.match(v) for k, v in data.items())
+
+        return conditions
