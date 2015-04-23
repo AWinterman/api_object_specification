@@ -19,10 +19,6 @@ class Constraint(object):
     def match(self, data):
         pass
 
-    def __repr__(self):
-        return '<{} {}>'.format(type(self), str(self.reify()))
-
-
 
 class RefConstraint(Constraint):
     def __init__(self, name):
@@ -36,6 +32,7 @@ class RefConstraint(Constraint):
         # TODO: Add actuall method here.
         pass
 
+
 class UserRefConstraint(RefConstraint):
     def __init__(self, name, possible_values):
         self.name = name
@@ -46,7 +43,6 @@ class UserRefConstraint(RefConstraint):
 
     def reify(self):
         return random.choice(self.possible_values)
-
 
 
 class ObjectConstraint(Constraint):
@@ -108,7 +104,10 @@ class ArrayConstraint(Constraint):
     def reify(self):
         output = []
         for element in self.constraints:
-            output = element.reify()
+            if isinstance(element.constraint, RepeatedTokenConstraint):
+                output.extend(element.reify())
+            else:
+                output.append(element.reify())
         return output
 
     def match(self, data):
@@ -195,7 +194,6 @@ class TokenConstraint(Constraint):
 
     def reify(self):
         # todo, reify as something more appropriate
-        print self.name
         return "<" + self.name + ">"
 
     def match(self, data):
@@ -207,12 +205,14 @@ class TokenConstraint(Constraint):
                 return True
         return False
 
+
 class RepeatedTokenConstraint(TokenConstraint):
     def reify(self):
-        return [(i, super(TokenConstraint, self).reify()) for i in range(0, random.randint(0, configuration.max_generation_count))]
+        count = range(0, random.randint(0, configuration.max_generation_count))
+        return [super(RepeatedTokenConstraint, self).reify() for _ in count]
 
     def match(self, data):
-        return all(super(TokenConstraint, self).match(element) for element in data)
+        return all(super(RepeatedTokenConstraint, self).match(element) for element in data)
 
 
 class KeyValueConstraint(Constraint):
