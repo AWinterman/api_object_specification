@@ -351,4 +351,3 @@ class ConstraintDefinition(Type):
         value = n.text[1:-1]
 
         return Constraint(value=value, type=dsl_type)
-
