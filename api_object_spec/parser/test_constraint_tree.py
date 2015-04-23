@@ -1,4 +1,6 @@
 from constraint_tree import Tree
+import grammar
+import model
 
 import unittest
 
@@ -6,6 +8,7 @@ import unittest
 class TestGrammar(unittest.TestCase):
     def setUp(self):
         self.constraint_definition = Tree('')
+
     def test_token(self):
         result = self.constraint_definition.model('<WUTEVER>', rule="token")
         self.assertEqual(result.type, 'token')
@@ -17,13 +20,18 @@ class TestGrammar(unittest.TestCase):
     def test_array(self):
         result = self.constraint_definition.grammar_model('["a", <b>, {"c": "d"}, <e>...]', rule="array")
 
-        array_constraint = self.constraint_definition._array(result)
+        array_constraint = Tree(
+            '',
+            constraints=[model.UserRefConstraint('b', ['a', 'b', 'c']), model.UserRefConstraint('e', [1, 2, 3])]
+        )._array(result)
 
-        self.assertEqual(array_constraint.type, grammar.Type.array)
-        self.assertEqual(len(array_constraint.value), 4)
-        self.assertEqual(array_constraint.value[0].value[0].value, 0)
-        self.assertEqual(array_constraint.value[0].value[0].type, grammar.Type.index)
-        self.assertEqual(array_constraint.value[0].value[1].value, grammar.Constraint(value='a', type=grammar.Type.string))
+        self.assertEqual(type(array_constraint), model.ArrayConstraint)
+        self.assertEqual(len(array_constraint.constraints), 4)
+        print array_constraint.reify()
+        self.assertTrue(array_constraint.match(['a', 'c', {'c': 'd'}, 1, 2, 3, 1, 2, 3]))
+        # self.assertEqual(array_constraint.value[0].value[0].value, 0)
+        # self.assertEqual(array_constraint.value[0].value[0].type, grammar.Type.index)
+        # self.assertEqual(array_constraint.value[0].value[1].value, grammar.Constraint(value='a', type=grammar.Type.string))
 
     def test_object(self):
         tokenvalue = self.constraint_definition.grammar_model('{"wutever": <mang>, "such key": "value", <token>, <ssss>...}',

@@ -1,5 +1,7 @@
 import abc
 from collections import namedtuple
+import random
+import configuration
 
 
 Definition = namedtuple('Definition', ['constraints', 'name'])
@@ -18,7 +20,7 @@ class Constraint(object):
         pass
 
     def __repr__(self):
-        return '<ArrayConstraint {}>'.format(str(self.reify()))
+        return '<{} {}>'.format(type(self), str(self.reify()))
 
 
 
@@ -33,6 +35,18 @@ class RefConstraint(Constraint):
     def match(self):
         # TODO: Add actuall method here.
         pass
+
+class UserRefConstraint(RefConstraint):
+    def __init__(self, name, possible_values):
+        self.name = name
+        self.possible_values = possible_values
+
+    def match(self, data):
+        return data in self.possible_values
+
+    def reify(self):
+        return random.choice(self.possible_values)
+
 
 
 class ObjectConstraint(Constraint):
@@ -176,16 +190,14 @@ class NullConstraint(Constraint):
 class TokenConstraint(Constraint):
     def __init__(self, name, definitions):
         self.name = name
+        # TODO: make this throw better
         self.definitions = definitions[name]
 
     def reify(self):
-        # todo: which definition do you use when there are multiple options?
-        for definition in self.definitions:
-            return definition.constraints.reify()
+        # todo: do we actually want to make random choices here?
+        return random.choice(self.definitions).constraints.reify()
 
     def match(self, data):
-        # this is the real meat and potatoes
-        # look up the definition associated with the token name
 
         for definition in self.definitions:
             if definition.constraints.match(data):
@@ -197,11 +209,11 @@ class RepeatedTokenConstraint(TokenConstraint):
     def __init__(self, name, definitions):
         TokenConstraint.__init__(self, name, definitions)
 
+    def reify(self):
+        return [(i, super(TokenConstraint, self).reify()) for i in range(0, random.randint(0, configuration.max_generation_count))]
+
     def match(self, data):
-        return all(
-            any(definition.constraints.match(element) for definition in self.definitions[self.name])
-            for element in data
-        )
+        return all(super(TokenConstraint, self).match(element) for element in data)
 
 
 class KeyValueConstraint(Constraint):

@@ -70,6 +70,8 @@ class Tree(object):
 
             constraints.append(model.ArrayElementConstraint(el, index))
 
+        print constraints
+
         return model.ArrayConstraint(constraints)
 
     def _value(self, val):
@@ -97,7 +99,6 @@ class Tree(object):
             pairs.append(self._pair(pair))
 
         return model.ObjectConstraint(pairs)
-
 
     def _pair(self, pair):
         token = pair.token
