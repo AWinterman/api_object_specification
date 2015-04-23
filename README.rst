@@ -84,12 +84,12 @@ for the same token name:  For example:
 ::
 
         FOO_WRAPPER: {
-          "foo": "bar"
+          "foo": "bar",
           "obj": <object>
         }
 
         FOO_WRAPPER: {
-          "foo": "bar"
+          "foo": "bar",
           "array": <array>
         }
 
@@ -154,8 +154,8 @@ To Do
 -----
 - Configuration documentation
 - API documentation
-- Write a parser which translates the dsl into a data structure representing expectations about a JSON object.
-- Write a generator which constructs objects according to the data structure described above
-- Write a parser which is configured with the expectations data structure described above, 
+- ~~Write a parser which translates the dsl into a data structure representing expectations about a JSON object.~~
+- Write a generator which constructs objects according to the data structure described above.
+- Write a parser which is configured with the expectations data structure described above,
   and takes json objects as input. It should either be a callable or have a method which returns true if an object conforms to
   expectations, and false otherwise.
