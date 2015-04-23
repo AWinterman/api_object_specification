@@ -353,29 +353,14 @@ class ConstraintModel(object):
         else:
             raise ValueError('"{}" must be a JSON value or a single token'.format(value))
 
-    def _key_value(self, node):
-
-        children = list(node)
-
-        key = children[0]
-        value = children[1]
-
-        return KeyValueConstraint(self._key(key), self._kvalue(value))
-
-    def _key(self, key):
-        return KeyConstraint(key.text[1:-1])
-
-    def _kvalue(self, value):
-        if value.type == 'one_token':
-            return self._one_token(value)
-        if value.type == 'value':
-            return self._value(value)
-
     def _token(self, token):
         if token.repeated_token:
             return self._repeated_token(token)
         if token.one_token:
             return self._one_token(token)
+
+        raise ValueError('{} is not a token'.format(token))
+
 
     def _one_token(self, token):
         name = token.descend('token_text')[0].text
@@ -384,13 +369,10 @@ class ConstraintModel(object):
 
     def _repeated_token(self, token):
         name = token.descend('token_text')[0].text
-        return RepeatedTokenConstraint(name)
+
+        return RepeatedTokenConstraint(name, self.definitions)
 
     def _primitive(self, n):
-        constraints = []
-
-        value = n.text
-
         if n.string:
             return self._string(n)
         elif n.number:

@@ -252,6 +252,31 @@ class ConstraintDefinition(object):
 
         return Constraint(type=Type.array, value=constraints)
 
+    def _value(self, val):
+        obj = val.object
+        array = val.array
+        primitive = val.primitive
+
+        # The following calls use argument unpacking, so that they throw if you somehow have too many elements here.
+        if obj:
+            return self._object(*obj)
+
+        if array:
+            return self._array(*array)
+
+        if primitive:
+            return self._primitive(*primitive)
+
+        raise ValueError('"{}" is not a value'.format(val))
+
+    def _object(self, obj):
+        constraints = []
+
+        for pair in obj.pair:
+            constraints.append(self._pair(pair))
+
+        return Constraint(type=Type.object, value=constraints)
+
     def _pair(self, pair):
         token = pair.token
         key = pair.pair_key
