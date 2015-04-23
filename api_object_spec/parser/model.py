@@ -1,5 +1,7 @@
 import abc
 from collections import namedtuple
+import random
+from parser import configuration
 
 
 Definition = namedtuple('Definition', ['constraints', 'name'])
@@ -18,7 +20,7 @@ class Constraint(object):
         pass
 
     def __repr__(self):
-        return '<ArrayConstraint {}>'.format(str(self.reify()))
+        return '<{} {}>'.format(type(self), str(self.reify()))
 
 
 
@@ -85,8 +87,6 @@ class ArrayElementConstraint(Constraint):
 
     def reify(self):
         return self.constraint.reify()
-
-
 
 
 class ArrayConstraint(Constraint):
@@ -179,6 +179,7 @@ class NullConstraint(Constraint):
 class TokenConstraint(Constraint):
     def __init__(self, name, definitions):
         self.name = name
+        # TODO: make this throw better
         self.definitions = definitions[name]
 
     def reify(self):
@@ -195,20 +196,13 @@ class TokenConstraint(Constraint):
         return False
 
 
-class RepeatedTokenConstraint(Constraint):
-    def __init__(self, name, definitions):
-        self.name = name
-        self.definition = definitions[name]
-
+class RepeatedTokenConstraint(TokenConstraint):
     def reify(self):
         # todo, reify as something more appropriate
-        return "<" + self.name + ">" + "..."
+        return [super(self, TokenConstraint).reify() for _ in random.choice(0, configuration.max_generation_count)]
 
     def match(self, data):
-        return all(
-            any(definition.constraints.match(element) for definition in self.definitions[self.name])
-            for element in data
-        )
+        return all(super(self, TokenConstraint) for element in data)
 
 
 class KeyValueConstraint(Constraint):
