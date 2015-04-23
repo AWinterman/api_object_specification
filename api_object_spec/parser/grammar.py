@@ -203,12 +203,13 @@ class ConstraintDefinition(object):
 
     def _definition(self, node):
         constraints = []
+        kv = node.key_value
+        val = node.value
 
-        for key_value in node.key_value:
-            constraints.append(self._key_value(key_value))
-
-        for value in node.value:
-            constraints.append(self._value(value))
+        if kv:
+            constraints = Constraint(type=Type.key_value, value=self._key_value(*kv))
+        if val:
+            constraints = self._value(*val)
 
         return Definition(name=node.descend('name')[0].text, constraints=constraints)
 

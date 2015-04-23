@@ -26,7 +26,6 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(array_constraint.value[0].value[0].type, grammar.Type.index)
         self.assertEqual(array_constraint.value[0].value[1].value, grammar.Constraint(value='a', type=grammar.Type.string))
 
-
     def test_object(self):
         tokenvalue = self.constraint_definition.model('{"wutever": <mang>, "such key": "value", <token>, <ssss>...}',
                                                       rule='object')
@@ -46,16 +45,20 @@ class TestGrammar(unittest.TestCase):
                          [grammar.Constraint(type=grammar.Type.key, value='such key'),
                           grammar.Constraint(type=grammar.Type.string, value='value')])
 
-
     def test_key_value(self):
         plain = self.constraint_definition.model('"so": "it goes"', rule='pair')
         with_token = self.constraint_definition.model('"so": <token>', rule='pair')
         with_object = self.constraint_definition.model('"this": {"object": null}', rule='pair')
 
-
     def test_definition(self):
-        result = grammar.dsl['definition'].parse('pair = "one": "two"')
+        result = self.constraint_definition('pair = "one": "two"')
 
+        self.assertEqual(result[0].name, 'pair')
+        self.assertEqual(result[0].constraints.type, grammar.Type.key_value)
+        self.assertEqual(result[0].constraints.value[0].value, 'one')
+        self.assertEqual(result[0].constraints.value[0].type, grammar.Type.key)
+        self.assertEqual(result[0].constraints.value[1].value, 'two')
+        self.assertEqual(result[0].constraints.value[1].type, grammar.Type.string)
 
     def test_call(self):
         result = self.constraint_definition(
@@ -69,11 +72,11 @@ class TestGrammar(unittest.TestCase):
             token = "man": <human>
         '''.strip())
 
-        type = result[0].constraints[0].type
-
-
-        print (type.is_token, type.is_leaf, type.has_children, type.name)
-
+        indent = '    '
+        for constraints, name in result:
+            print name
+            for c in constraints:
+                print indent + str(c)
 
 
 
