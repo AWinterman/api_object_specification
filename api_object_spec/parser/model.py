@@ -1,7 +1,7 @@
 import abc
 from collections import namedtuple
 import random
-from parser import configuration
+import configuration
 
 
 Definition = namedtuple('Definition', ['constraints', 'name'])
@@ -122,7 +122,6 @@ class ArrayConstraint(Constraint):
         return True
 
 
-
 class StringConstraint(Constraint):
     def __init__(self, string):
         self.string = string
@@ -196,6 +195,7 @@ class TokenConstraint(Constraint):
 
     def reify(self):
         # todo, reify as something more appropriate
+        print self.name
         return "<" + self.name + ">"
 
     def match(self, data):
@@ -207,14 +207,12 @@ class TokenConstraint(Constraint):
                 return True
         return False
 
-
 class RepeatedTokenConstraint(TokenConstraint):
     def reify(self):
-        # todo, reify as something more appropriate
-        return [super(self, TokenConstraint).reify() for _ in random.choice(0, configuration.max_generation_count)]
+        return [(i, super(TokenConstraint, self).reify()) for i in range(0, random.randint(0, configuration.max_generation_count))]
 
     def match(self, data):
-        return all(super(self, TokenConstraint) for element in data)
+        return all(super(TokenConstraint, self).match(element) for element in data)
 
 
 class KeyValueConstraint(Constraint):
