@@ -1,27 +1,28 @@
-from collections import namedtuple, defaultdict
-from enum import Enum
+from collections import namedtuple
 from parsimonious.grammar import Grammar
 
 DSL = r"""# A grammar for specifying JSON
 # DSL specific
 definitions = (definition)*
-definition = name "=" (pair / value)
-name = space ~"[A-Z_]"i* space
+definition = name "=" (pair / value) space
+name = space token_text space
 token = repeated_token / one_token
 repeated_token = space rpt space
 one_token  = space tkn space
 tkn = "<" token_text ">"
 rpt = "<" token_text ">..."
-token_text =  ~"[A-Z_ ]"i*
+token_text =  ~"[a-zA-Z0-9_ ]"i*
 
 # JSON
+pair = (pair_key ":" pair_value) / token
+pair_key = space (one_token / string) space
+pair_value = space (value / one_token) space
+
 value = space (primitive / object / array) space
 element = value / token
 
 object = space "{" (pair ("," pair)*)? "}" space
-pair = (pair_key ":" pair_value) / token
-pair_key = (one_token / string)
-pair_value = value / one_token
+
 
 array = "[" (element ("," element)*)? "]"
 

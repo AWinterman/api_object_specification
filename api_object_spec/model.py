@@ -2,6 +2,9 @@ import abc
 import random
 import configuration
 
+class ConstraintError(Exception):
+    pass
+
 
 class Constraint(object):
     __metaclass__ = abc.ABCMeta
@@ -15,19 +18,21 @@ class Constraint(object):
         pass
 
     def __repr__(self):
-        return '<{} {}>'.format(type(self), str(self.reify()))
+        return '<{} definition: \'{}\'>'.format(type(self), self.model.text)
 
 
 class Ref(Constraint):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name):
+    def __init__(self, name, model=None):
         self.name = name
+        self.model = model
 
 
 class ConstraintWrapper(Constraint):
-    def __init__(self, constraint):
+    def __init__(self, constraint, model=None):
         self.constraint = constraint
+        self.model = model
 
     def reify(self):
         return self.constraint.reify()
@@ -37,9 +42,11 @@ class ConstraintWrapper(Constraint):
 
 
 class UserRef(Ref):
-    def __init__(self, name, possible_values):
+    def __init__(self, name, possible_values, model=None):
         self.name = name
         self.possible_values = possible_values
+        self.model = model
+
 
     def match(self, data):
         return data in self.possible_values
@@ -49,21 +56,25 @@ class UserRef(Ref):
 
 
 class Object(Constraint):
-    def __init__(self, pairs):
+    def __init__(self, pairs, model=None):
         # pairs are either a token constraint or a key value constraint
         self.key_values = pairs
+        self.model = model
+
 
     def reify(self):
         output = {}
         for key_value in self.key_values:
             if isinstance(key_value.constraint, RepeatedToken):
-                for k, v in key_value.constraint.reify():
-                    output[k] = v
-            else:
-                k, v = key_value.reify()
+                r = key_value.reify()
+                if not r.length:
+                    continue
+                for k, v in r:
+                        output[k] = v
+                else:
+                    k, v = key_value.reify()
 
-            output[k] = v
-
+                output[k] = v
         return output
 
     def match(self, data):
@@ -76,8 +87,8 @@ class Object(Constraint):
 
 
 class ObjectRef(Ref):
-    def __init__(self, name):
-        Ref.__init__(self, name)
+    def __init__(self, name, model=None):
+        Ref.__init__(self, name, model=model)
 
     def reify(self):
         return {"foo": "bar"}
@@ -87,8 +98,10 @@ class ObjectRef(Ref):
 
 
 class Key(Constraint):
-    def __init__(self, key):
+    def __init__(self, key, model=None):
         self.key = key
+        self.model = model
+
 
     def reify(self):
         return self.key
@@ -98,9 +111,10 @@ class Key(Constraint):
 
 
 class ArrayElement(ConstraintWrapper):
-    def __init__(self, constraint, index):
+    def __init__(self, constraint, index, model=None):
         self.constraint = constraint
         self.index = index
+        self.model = model
 
     def match(self, array):
         if not isinstance(self.constraint, RepeatedToken):
@@ -119,8 +133,9 @@ class ArrayElement(ConstraintWrapper):
 
 
 class Array(Constraint):
-    def __init__(self, constraints):
+    def __init__(self, constraints, model=None):
         self.constraints = constraints
+        self.model = model
 
     def reify(self):
         output = []
@@ -143,8 +158,8 @@ class Array(Constraint):
 
 
 class ArrayRef(Ref):
-    def __init__(self, name):
-        Ref.__init__(self, name)
+    def __init__(self, name, model=None):
+        Ref.__init__(self, name, model=model)
 
     def reify(self):
         return ["foo", "bar", 1, 2, 3]
@@ -154,8 +169,9 @@ class ArrayRef(Ref):
 
 
 class String(Constraint):
-    def __init__(self, string):
+    def __init__(self, string, model=None):
         self.string = string
+        self.model = model
 
     def reify(self):
         return self.string
@@ -165,8 +181,8 @@ class String(Constraint):
 
 
 class StringRef(Ref):
-    def __init__(self, name):
-        Ref.__init__(self, name)
+    def __init__(self, name, model=None):
+        Ref.__init__(self, name, model=model)
 
     def reify(self):
         return "foobar"
@@ -176,8 +192,9 @@ class StringRef(Ref):
 
 
 class Number(Constraint):
-    def __init__(self, number):
+    def __init__(self, number, model=None):
         self.number = number
+        self.model = model
 
     def reify(self):
         return self.number
@@ -187,8 +204,8 @@ class Number(Constraint):
 
 
 class NumberRef(Ref):
-    def __init__(self, name):
-        Ref.__init__(self, name)
+    def __init__(self, name, model=None):
+        Ref.__init__(self, name, model=model)
 
     def reify(self):
         return 123
@@ -198,8 +215,9 @@ class NumberRef(Ref):
 
 
 class Boolean(Constraint):
-    def __init__(self, boolean):
+    def __init__(self, boolean, model=None):
         self.boolean = boolean
+        self.model = model
 
     def reify(self):
         return self.boolean
@@ -209,8 +227,8 @@ class Boolean(Constraint):
 
 
 class BooleanRef(Ref):
-    def __init__(self, name):
-        Ref.__init__(self, name)
+    def __init__(self, name, model=None):
+        Ref.__init__(self, name, model=model)
 
     def reify(self):
         return random.choice([True, False])
@@ -220,6 +238,9 @@ class BooleanRef(Ref):
 
 
 class Null(Constraint):
+    def __init__(self, model=None):
+        self.model = model
+
     def reify(self):
         return None
 
@@ -228,10 +249,11 @@ class Null(Constraint):
 
 
 class Token(Constraint):
-    def __init__(self, name, definitions):
+    def __init__(self, name, definitions, model=None):
         self.name = name
         # TODO: make this throw better
         self.definitions = definitions[name]
+        self.model = model
 
     def reify(self):
         # todo: do we actually want to make random choices here?
@@ -245,8 +267,8 @@ class Token(Constraint):
 
 
 class RepeatedToken(Token):
-    def __init__(self, name, definitions):
-        Token.__init__(self, name, definitions)
+    def __init__(self, name, definitions, model=None):
+        Token.__init__(self, name, definitions, model=model)
 
     def reify(self):
         count = range(0, random.randint(0, configuration.max_generation_count))
@@ -259,9 +281,10 @@ class KeyValue(ConstraintWrapper):
 
 
 class Pair(Constraint):
-    def __init__(self, key, value):
+    def __init__(self, key, value, model=None):
         self.key = key
         self.value = value
+        self.model = model
 
     def reify(self):
         kr = self.key.reify()

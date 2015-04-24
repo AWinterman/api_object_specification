@@ -1,5 +1,5 @@
 import model
-from constraint_tree import Tree
+from compile import ApiSpecification
 from defaults import definitions
 
 result = model.KeyValue(
@@ -15,7 +15,7 @@ print result
 
 assert result.match({'wutever': 'yes'})
 
-t = Tree('''
+t = ApiSpecification('''
     token = "boogie": <number>
     token = "wutever": "man"
     token = "yessir": "dressir"
@@ -33,3 +33,11 @@ examples = [
 
 for e in examples:
     assert t.validate('pair', e)
+
+t = ApiSpecification('token = {"1": <number>}')
+t = ApiSpecification('''
+    token = <string>: {
+        "1": <number>
+    }
+''')
+

@@ -52,9 +52,9 @@ class Compiler(object):
             else:
                 raise ValueError('"{}" is an illegal element'.format(element))
 
-            constraints.append(model.ArrayElement(el, index))
+            constraints.append(model.ArrayElement(el, index, model=el))
 
-        return model.Array(constraints)
+        return model.Array(constraints, model=array)
 
     def _value(self, val):
         obj = val.object
@@ -80,7 +80,7 @@ class Compiler(object):
         for pair in obj.pair:
             pairs.append(self._pair(pair))
 
-        return model.Object(pairs)
+        return model.Object(pairs, model=obj)
 
     def _pair(self, pair):
         token = pair.token
@@ -89,9 +89,9 @@ class Compiler(object):
 
         # using unpacking here, should only get one element, if you have more it will throw.
         if token:
-            return model.KeyValue(self._token(*token))
+            return model.KeyValue(self._token(*token), model=pair)
         elif key and value:
-            return model.KeyValue(model.Pair(self._pair_key(*key), self._pair_value(*value)))
+            return model.KeyValue(model.Pair(self._pair_key(*key), self._pair_value(*value)), model=pair)
         else:
             raise ValueError('"{}" is not a pair'.format(pair))
 
@@ -128,32 +128,32 @@ class Compiler(object):
     def _one_token(self, token):
         name = token.descend('token_text')[0].text
 
-        return model.Token(name, self.definitions)
+        return model.Token(name, self.definitions, model=token)
 
     def _repeated_token(self, token):
         name = token.descend('token_text')[0].text
 
-        return model.RepeatedToken(name, self.definitions)
+        return model.RepeatedToken(name, self.definitions, model=token)
 
     def _primitive(self, n):
         if n.string:
             return self._string(n)
         elif n.number:
-            return model.Number(float(n.text))
+            return model.Number(float(n.text), model=n)
         elif n.boolean:
             tf = {'true': True, 'false': False}[n.text]
-            return model.Boolean(tf)
+            return model.Boolean(tf, model=n)
         elif n.null:
-            return model.Null()
+            return model.Null(model=n)
         else:
             raise ValueError('{} is not a primitive'.format(n))
 
     @staticmethod
     def _string(n):
-        return model.String(n.text.strip('"'))
+        return model.String(n.text.strip('"'), model=n)
 
 
-class Tree(object):
+class ApiSpecification(object):
     c = Compiler()
 
     def __init__(self, jsl, definitions=defaults.definitions):
@@ -170,8 +170,6 @@ class Tree(object):
             return definition.reify()
 
 
-
-
 #####
 #
 # sampleJSL = """
@@ -185,7 +183,7 @@ class Tree(object):
 #
 # """
 #
-# model = Tree(sampleJSL)
+# model = ApiSpecification(sampleJSL)
 #
 # print(model.generate("foo"))
 # print(model.validate("foo",

@@ -9,5 +9,3 @@ constraints = (
 )
 
 definitions = defaultdict(list, {c.name: [c] for c in constraints})
-
-print definitions

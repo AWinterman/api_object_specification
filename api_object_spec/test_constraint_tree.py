@@ -1,4 +1,4 @@
-from constraint_tree import Tree, Compiler
+from compile import ApiSpecification, Compiler
 import grammar
 import model
 
@@ -25,8 +25,6 @@ class TestGrammar(unittest.TestCase):
         }
 
         array_constraint = self.c._array(result)
-
-        print array_constraint.reify()
 
         self.assertEqual(type(array_constraint), model.Array)
         self.assertEqual(len(array_constraint.constraints), 4)
@@ -59,13 +57,13 @@ class TestGrammar(unittest.TestCase):
         token_first = self.c.model('<token>: true', rule='pair')
 
     def test_definition(self):
-        result = Tree('pair = "one": "two"')
+        result = ApiSpecification('pair = "one": "two"')
 
         self.assertEqual(result.generate('pair'), ('one', 'two'))
 
 
     def test_call(self):
-        t = Tree(
+        t = ApiSpecification(
             '''
             human = "roger"
             human = "steve"
@@ -85,5 +83,4 @@ class TestGrammar(unittest.TestCase):
             apathetics = [<apathy>...]
 
         '''.strip())
-
 
