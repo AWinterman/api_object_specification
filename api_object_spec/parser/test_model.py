@@ -2,14 +2,14 @@ import model
 from constraint_tree import Tree
 from defaults import definitions
 
-result = model.KeyValueConstraint(
-    model.PairConstraint(
-        model.TokenConstraint('string', definitions=definitions),
-        model.StringConstraint('yes')
+result = model.KeyValue(
+    model.Pair(
+        model.Token('string', definitions=definitions),
+        model.String('yes')
     )
 )
 print result.reify()
-assert result.match({'wutever': 'yes'})
+assert result.__eq__({'wutever': 'yes'})
 
 t = Tree('''
     token = "boogie": <number>

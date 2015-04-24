@@ -20,8 +20,8 @@ class TestGrammar(unittest.TestCase):
     def test_array(self):
         result = self.c.model('["a", <b>, {"c": "d"}, <e>...]', rule="array")
         self.c.definitions = {
-            'b': [model.UserRefConstraint('b', ['a', 'b', 'c'])],
-            'e': [model.UserRefConstraint('e', [1, 2, 3])]
+            'b': [model.UserRef('b', ['a', 'b', 'c'])],
+            'e': [model.UserRef('e', [1, 2, 3])]
         }
 
 
@@ -29,13 +29,13 @@ class TestGrammar(unittest.TestCase):
 
         print array_constraint.reify()
 
-        self.assertEqual(type(array_constraint), model.ArrayConstraint)
+        self.assertEqual(type(array_constraint), model.Array)
         self.assertEqual(len(array_constraint.constraints), 4)
 
-        self.assertTrue(array_constraint.match(['a', 'c', {'c': 'd'}, 1, 2, 3, 1, 2, 3]))
+        self.assertTrue(array_constraint == (['a', 'c', {'c': 'd'}, 1, 2, 3, 1, 2, 3]))
 
     # def test_object(self):
-    #     tokenvalue = self.constraint_definition.grammar_model('{"wutever": <mang>, "such key": "value", <token>, <ssss>...}',
+    #     tokenvalue = self.constraint_definition.model('{"wutever": <mang>, "such key": "value", <token>, <ssss>...}',
     #                                                   rule='object')
     #
     #     result = self.constraint_definition._object(tokenvalue)
@@ -54,10 +54,10 @@ class TestGrammar(unittest.TestCase):
     #                       grammar.Constraint(type=grammar.Type.string, value='value')])
 
     def test_key_value(self):
-        plain = self.c.grammar_model('"so": "it goes"', rule='pair')
-        with_token = self.c.grammar_model('"so": <token>', rule='pair')
-        with_object = self.c.grammar_model('"this": {"object": null}', rule='pair')
-        token_first = self.c.grammar_model('<token>: true', rule='pair')
+        plain = self.c.model('"so": "it goes"', rule='pair')
+        with_token = self.c.model('"so": <token>', rule='pair')
+        with_object = self.c.model('"this": {"object": null}', rule='pair')
+        token_first = self.c.model('<token>: true', rule='pair')
 
     def test_definition(self):
         result = Tree('pair = "one": "two"')

@@ -11,6 +11,8 @@ class Compiler(object):
         for definition in self.model(text).definition:
             self._definition(definition)
 
+        return self.definitions
+
     @staticmethod
     def model(text, rule=None):
         if rule is not None:
@@ -31,7 +33,7 @@ class Compiler(object):
 
         name = node.descend('name')[0].text
 
-        self.definitions.append(name, constraints)
+        self.definitions[name].append(constraints)
 
     def _array(self, array):
         constraints = []
@@ -50,9 +52,9 @@ class Compiler(object):
             else:
                 raise ValueError('"{}" is an illegal element'.format(element))
 
-            constraints.append(model.ArrayElementConstraint(el, index))
+            constraints.append(model.ArrayElement(el, index))
 
-        return model.ArrayConstraint(constraints)
+        return model.Array(constraints)
 
     def _value(self, val):
         obj = val.object
@@ -78,7 +80,7 @@ class Compiler(object):
         for pair in obj.pair:
             pairs.append(self._pair(pair))
 
-        return model.ObjectConstraint(pairs)
+        return model.Object(pairs)
 
     def _pair(self, pair):
         token = pair.token
@@ -87,9 +89,9 @@ class Compiler(object):
 
         # using unpacking here, should only get one element, if you have more it will throw.
         if token:
-            return model.KeyValueConstraint(self._token(*token))
+            return model.KeyValue(self._token(*token))
         elif key and value:
-            return model.KeyValueConstraint(model.PairConstraint(self._pair_key(*key), self._pair_value(*value)))
+            return model.KeyValue(model.Pair(self._pair_key(*key), self._pair_value(*value)))
         else:
             raise ValueError('"{}" is not a pair'.format(pair))
 
@@ -126,47 +128,46 @@ class Compiler(object):
     def _one_token(self, token):
         name = token.descend('token_text')[0].text
 
-        return model.TokenConstraint(name, self.definitions)
+        return model.Token(name, self.definitions)
 
     def _repeated_token(self, token):
         name = token.descend('token_text')[0].text
 
-        return model.RepeatedTokenConstraint(name, self.definitions)
+        return model.RepeatedToken(name, self.definitions)
 
     def _primitive(self, n):
         if n.string:
             return self._string(n)
         elif n.number:
-            return model.NumberConstraint(float(n.text))
+            return model.Number(float(n.text))
         elif n.boolean:
             tf = {'true': True, 'false': False}[n.text]
-            return model.BooleanConstraint(tf)
+            return model.Boolean(tf)
         elif n.null:
-            return model.NullConstraint()
+            return model.Null()
         else:
             raise ValueError('{} is not a primitive'.format(n))
 
     @staticmethod
     def _string(n):
-        return model.StringConstraint(n.text.strip('"'))
+        return model.String(n.text.strip('"'))
 
 
 class Tree(object):
     c = Compiler()
 
     def __init__(self, jsl, definitions=defaults.definitions):
-        print definitions, '<---- definitions'
         self.definitions = self.c(jsl, definitions)
 
     def validate(self, name, data):
         for definition in self.definitions[name]:
-            if definition.constraints.match(data):
+            if definition == data:
                 return True
         return False
 
     def generate(self, name):
         for definition in self.definitions[name]:
-            return definition.constraints.reify()
+            return definition.reify()
 
 
 
