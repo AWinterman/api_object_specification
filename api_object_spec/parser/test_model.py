@@ -8,8 +8,12 @@ result = model.KeyValue(
         model.String('yes')
     )
 )
+
 print result.reify()
-assert result.__eq__({'wutever': 'yes'})
+
+print result
+
+assert result.match({'wutever': 'yes'})
 
 t = Tree('''
     token = "boogie": <number>

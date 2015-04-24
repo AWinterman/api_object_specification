@@ -161,7 +161,7 @@ class Tree(object):
 
     def validate(self, name, data):
         for definition in self.definitions[name]:
-            if definition == data:
+            if definition.match(data):
                 return True
         return False
 

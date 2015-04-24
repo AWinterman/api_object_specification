@@ -2,7 +2,7 @@ import abc
 import random
 import configuration
 
-# IR nodes and such
+
 class Constraint(object):
     __metaclass__ = abc.ABCMeta
 
@@ -10,9 +10,8 @@ class Constraint(object):
     def reify(self):
         pass
 
-    # whether the constraint __eq__es the passed json data
     @abc.abstractmethod
-    def __eq__(self, data):
+    def match(self, data):
         pass
 
     def __repr__(self):
@@ -33,8 +32,8 @@ class ConstraintWrapper(Constraint):
     def reify(self):
         return self.constraint.reify()
 
-    def __eq__(self, other):
-        return self.constraint == other
+    def match(self, other):
+        return self.constraint.match(other)
 
 
 class UserRef(Ref):
@@ -42,7 +41,7 @@ class UserRef(Ref):
         self.name = name
         self.possible_values = possible_values
 
-    def __eq__(self, data):
+    def match(self, data):
         return data in self.possible_values
 
     def reify(self):
@@ -67,11 +66,11 @@ class Object(Constraint):
 
         return output
 
-    def __eq__(self, data):
+    def match(self, data):
         if not isinstance(data, dict):
             return False
         for key_value in self.key_values:
-            if not key_value == data:
+            if not key_value.match(data):
                 return False
         return True
 
@@ -83,7 +82,7 @@ class ObjectRef(Ref):
     def reify(self):
         return {"foo": "bar"}
 
-    def __eq__(self, data):
+    def match(self, data):
         return isinstance(data, dict)
 
 
@@ -94,7 +93,7 @@ class Key(Constraint):
     def reify(self):
         return self.key
 
-    def __eq__(self, data):
+    def match(self, data):
         return self.key in data
 
 
@@ -103,20 +102,20 @@ class ArrayElement(ConstraintWrapper):
         self.constraint = constraint
         self.index = index
 
-    def __eq__(self, array):
+    def match(self, array):
         if not isinstance(self.constraint, RepeatedToken):
-            return self.constraint == (array[self.index])
+            return self.constraint.match(array[self.index])
 
         i = self.index
 
         while i < array.length:
-            if not self.constraint == (array[i]):
+            if not self.constraint.match(array[i]):
                 return False
 
         return True
 
-    def __eq__(self, array):
-        return self.constraint == (array[self.index])
+    def match(self, array):
+        return self.constraint.match(array[self.index])
 
 
 class Array(Constraint):
@@ -132,12 +131,12 @@ class Array(Constraint):
                 output.append(element.reify())
         return output
 
-    def __eq__(self, data):
+    def match(self, data):
         if not isinstance(data, list):
             return False
 
         for element in self.constraints:
-            if not element == (data):
+            if not element.match(data):
                 return False
 
         return True
@@ -150,7 +149,7 @@ class ArrayRef(Ref):
     def reify(self):
         return ["foo", "bar", 1, 2, 3]
 
-    def __eq__(self, data):
+    def match(self, data):
         return isinstance(data, list)
 
 
@@ -161,7 +160,7 @@ class String(Constraint):
     def reify(self):
         return self.string
 
-    def __eq__(self, data):
+    def match(self, data):
         return self.string == data
 
 
@@ -172,7 +171,7 @@ class StringRef(Ref):
     def reify(self):
         return "foobar"
 
-    def __eq__(self, data):
+    def match(self, data):
         return isinstance(data, str)
 
 
@@ -183,7 +182,7 @@ class Number(Constraint):
     def reify(self):
         return self.number
 
-    def __eq__(self, data):
+    def match(self, data):
         return self.number == data
 
 
@@ -194,7 +193,7 @@ class NumberRef(Ref):
     def reify(self):
         return 123
 
-    def __eq__(self, data):
+    def match(self, data):
         return isinstance(data, (float, int))
 
 
@@ -205,8 +204,8 @@ class Boolean(Constraint):
     def reify(self):
         return self.boolean
 
-    def __eq__(self, data):
-        return self.boolean == data
+    def match(self, data):
+        return self.boolean.match(data)
 
 
 class BooleanRef(Ref):
@@ -216,7 +215,7 @@ class BooleanRef(Ref):
     def reify(self):
         return random.choice([True, False])
 
-    def __eq__(self, data):
+    def match(self, data):
         return isinstance(data, bool)
 
 
@@ -224,7 +223,7 @@ class Null(Constraint):
     def reify(self):
         return None
 
-    def __eq__(self, data):
+    def match(self, data):
         return data is None
 
 
@@ -238,9 +237,9 @@ class Token(Constraint):
         # todo: do we actually want to make random choices here?
         return random.choice(self.definitions).reify()
 
-    def __eq__(self, data):
+    def match(self, data):
         for definition in self.definitions:
-            if definition == (data):
+            if definition.match(data):
                 return True
         return False
 
@@ -259,7 +258,7 @@ class KeyValue(ConstraintWrapper):
     pass
 
 
-class Pair():
+class Pair(Constraint):
     def __init__(self, key, value):
         self.key = key
         self.value = value
@@ -267,9 +266,10 @@ class Pair():
     def reify(self):
         kr = self.key.reify()
         vr = self.value.reify()
+
         return kr, vr
 
-    def __eq__(self, data):
-        conditions = any(self.key == (k) and self.value == (v) for k, v in data.items())
+    def match(self, data):
+        conditions = any(self.key.match(k) and self.value.match(v) for k, v in data.items())
 
         return conditions

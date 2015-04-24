@@ -24,7 +24,6 @@ class TestGrammar(unittest.TestCase):
             'e': [model.UserRef('e', [1, 2, 3])]
         }
 
-
         array_constraint = self.c._array(result)
 
         print array_constraint.reify()
@@ -32,7 +31,7 @@ class TestGrammar(unittest.TestCase):
         self.assertEqual(type(array_constraint), model.Array)
         self.assertEqual(len(array_constraint.constraints), 4)
 
-        self.assertTrue(array_constraint == (['a', 'c', {'c': 'd'}, 1, 2, 3, 1, 2, 3]))
+        self.assertTrue(array_constraint.match(['a', 'c', {'c': 'd'}, 1, 2, 3, 1, 2, 3]))
 
     # def test_object(self):
     #     tokenvalue = self.constraint_definition.model('{"wutever": <mang>, "such key": "value", <token>, <ssss>...}',
