@@ -1,39 +1,18 @@
+from collections import defaultdict
 import model
 import grammar
 import defaults
 
 
-class Tree(object):
-    def __init__(self, jsl, constraints=defaults.constraints):
-        grammar_model = self.grammar_model(jsl)
-        self.definitions = {}
+class Compiler(object):
+    def __call__(self, text, definitions=None):
+        self.definitions = defaultdict(list, definitions)
 
-        for ref_constraint in constraints:
-            self._add_definition(model.Definition(name=ref_constraint.name, constraints=ref_constraint))
-
-        for definition in grammar_model.definition:
-            constraint_definition = self._definition(definition)
-            self._add_definition(constraint_definition)
-
-    def validate(self, name, data):
-        for definition in self.definitions[name]:
-            if definition.constraints.match(data):
-                return True
-        return False
-
-    def generate(self, name):
-        for definition in self.definitions[name]:
-            return definition.constraints.reify()
-
-    def _add_definition(self, definition):
-        if definition.name in self.definitions:
-            self.definitions[definition.name].append(definition)
-        else:
-            self.definitions[definition.name] = [definition]
-
+        for definition in self.model(text).definition:
+            self._definition(definition)
 
     @staticmethod
-    def grammar_model(text, rule=None):
+    def model(text, rule=None):
         if rule is not None:
             return grammar.Model(grammar.dsl[rule].parse(text))
         else:
@@ -50,7 +29,9 @@ class Tree(object):
         else:
             raise ValueError("{} is not a valid definition body".format(node))
 
-        return model.Definition(name=node.descend('name')[0].text, constraints=constraints)
+        name = node.descend('name')[0].text
+
+        self.definitions.append(name, constraints)
 
     def _array(self, array):
         constraints = []
@@ -170,19 +151,38 @@ class Tree(object):
         return model.StringConstraint(n.text.strip('"'))
 
 
+class Tree(object):
+    c = Compiler()
+
+    def __init__(self, jsl, definitions=defaults.definitions):
+        print definitions, '<---- definitions'
+        self.definitions = self.c(jsl, definitions)
+
+    def validate(self, name, data):
+        for definition in self.definitions[name]:
+            if definition.constraints.match(data):
+                return True
+        return False
+
+    def generate(self, name):
+        for definition in self.definitions[name]:
+            return definition.constraints.reify()
+
+
+
 
 #####
-
-sampleJSL = """
-
-wow = "such":"pair"
-name = "randy"
-hyderabad = {"anynumber": <number>}
-things = ["foo", "barf", "dear friends", <string>...]
-red = {"subjective":true, "rgb":"1 0 0"}
-foo = {"color":<red>, "doge":<wow>, "bar":<hyderabad>, "my name is":<name>, "neat":12.59199, "cool":{"yay":"radical"}}
-
-"""
+#
+# sampleJSL = """
+#
+# wow = "such":"pair"
+# name = "randy"
+# hyderabad = {"anynumber": <number>}
+# things = ["foo", "barf", "dear friends", <string>...]
+# red = {"subjective":true, "rgb":"1 0 0"}
+# foo = {"color":<red>, "doge":<wow>, "bar":<hyderabad>, "my name is":<name>, "neat":12.59199, "cool":{"yay":"radical"}}
+#
+# """
 #
 # model = Tree(sampleJSL)
 #

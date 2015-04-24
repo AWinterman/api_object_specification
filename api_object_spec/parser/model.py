@@ -1,11 +1,6 @@
 import abc
-from collections import namedtuple
 import random
 import configuration
-
-
-Definition = namedtuple('Definition', ['constraints', 'name'])
-
 
 # IR nodes and such
 class Constraint(object):
@@ -27,15 +22,7 @@ class Constraint(object):
 class RefConstraint(Constraint):
     def __init__(self, name):
         self.name = name
-
-    def reify(self):
-        # todo: combine this logic with token?
-        return "<" + self.name + ">"
-
-    def match(self):
-        # TODO: Add actuall method here.
-        pass
-
+        
 
 class UserRefConstraint(RefConstraint):
     def __init__(self, name, possible_values):
@@ -241,12 +228,11 @@ class TokenConstraint(Constraint):
 
     def reify(self):
         # todo: do we actually want to make random choices here?
-        return random.choice(self.definitions).constraints.reify()
+        return random.choice(self.definitions).reify()
 
     def match(self, data):
-
         for definition in self.definitions:
-            if definition.constraints.match(data):
+            if definition.match(data):
                 return True
         return False
 
