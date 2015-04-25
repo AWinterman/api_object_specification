@@ -1,91 +1,45 @@
 """
-            ==========================
-            Json Object Specification
-            ==========================
-
-   Specifying JSON objects in a simple, human readable format.
+A Presentation on api_object_specification
 
             Andrew Winterman, Marc Sciglimpaglia
-"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 """
+
+presentation = """
+
+            ==========================
+             API Object Specification
+            ==========================
+
+   Specifying JSON objects in a simple, human readable format...
+
+
+    ... And generating parsers/generators from the specification
+
+
 http://eng-docs.prod.urbanairship.com/docs/api-v3/en/latest/#api-endpoints
 
-This is pretty good, you can read it, and get some idea of what the spec should
-be" But it's up to you to keep the full specification in your head As the
-specification grows in complexity, this can become difficult.
+- This is pretty good
 
-For example: notification.ios.alert
+- Specification can be complex.
 
-         "alert" - Override the alert value provided at the top level, if any.
-         May be a JSON string or an object which conforms to Apple's spec (see
-         Table 3-2 in the APNS Docs).
+For example: API V3: notification.ios.alert
 
-I was on the web team when we found out about this, years (?) after it had been
-implemented.
-
-The website needs to support the FULL SET OF POSSIBLE API PAYLOADS.
-
-As do API consumers.
-
-Producers should be able to validate correctness when they generate api
-payloads.
-"""
+         "alert" - Override the alert value provided at the top level,
+          if any. MAY BE A JSON STRING OR AN OBJECT WHICH CONFORMS
+          TO APPLE'S SPEC (SEE TABLE 3-2 IN THE APNS DOCS).
 
 
+              API Implementer's Contract:
+              ---------------------------
 
+- Consume the full specification
+- Produce valid payloads
 
+- Docs lay out the contract
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"""
+- There should be a way to verify implementations match
+  the docs with computers.
 Goal:
      - Write a DSL for specifying JSON objects.
      - Keep it easy to read, easy to write.
@@ -95,11 +49,7 @@ Goal:
 
 """
 
-
 api_v3 = """
-uuid = "6086e075-65cb-4702-9bfa-f898bf5267ab"
-uuid = "c41d36ab-583a-4f4e-902c-e11c9ae30d42"
-uuid = "2eff688b-6d3d-466c-ad87-c9fdf1ab45ce"
 
 atom = {"tag": <string>}
 atom = {"segment": <uuid>}
@@ -118,83 +68,68 @@ platforms = "amazon"
 platforms = "blackberry"
 
 device_types = "all"
-device_types = [<platforms>...]
+device_types = [<platforms>, <platforms>...]
 
 api_v3 = {
     "audience": <audience>,
-    "device_types": <device_types>
+    "device_types": <device_types>,
+    "notification": {"alert": <string>}
 }
 """
-#
+
 from compile import ApiSpecification
 import json
 
 spec = ApiSpecification(api_v3)
+result = spec.generate('api_v3')
+validates = spec.validate('api_v3', result)
 
-print spec.generate('api_v3')
+print "The result is:"
+for line in json.dumps(result, indent=4).split('\n'):
+    print '    ' + line
+print "Does this payload validate?", validates
 
-print json.dumps(spec.generate('api_v3'), indent=4)
+"""
+Language:
 
+JSON, with a couple extra items:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+NAME = DEFINITION BODY
+ ^
+ |
+ - -can have spaces, numbers, underscores, letters
 
 
+NAME = DEFINITION BODY
+        ^
+        |
+        |
+        ----- A PAIR or a VALUE.
 
+PAIR:
+    - "string": VALUE
+    - <token>: VALUE
+    - <token>
 
+VALUE:
+    - JSON Object
+    - JSON Array
+    - Number, String, Boolean, Null
+    - Token
 
+Token:
+    - Anything in angle brackets
+    - Must match a definition name, or the parser will
+      error... eventually.
 
+TODO:
 
+    - Recursive API specifications:
+
+        audience = {OPERATOR: <audience>}
+    - Specifying Custom tokens.
+    - Why didn't validate? Should identify the expression that caused it to fail.
+    - Better stack traces if your specification doesn't parse.
+    - sphinx extension
 #
 # """
-# print "Example:"
-# print "Russell and Graham's hackweek project is a plugin for reading reactor messages with WireShark"
-# print "It get's configured with an ENORMOUS json object."
-# """
-#
-# from example import full
-#
-# print full
-#
-# import os
-# import json
-#
-# from compile import ApiSpecification
-# from examples import *
-#
-# print json.dumps(full, indent=4)
-# print JSL
-# rpc_spec = ApiSpecification(JSL)
-#
-#
-# print json.dumps(bonestorm_spec, indent=4)
-# print rpc_spec.validate('rpc', bonestorm_spec), '<----- the whole bonestorm spec!'
-#
-# print json.dumps(bonestorm_spec['bonestorm'])
-# print rpc_spec.validate('payload_handler', bonestorm_spec['bonestorm']['request_payload_handler'])
-#
-# print rpc_spec.validate('rpc', json.loads(argon_example)), '<------ argon turns out to be really complicated'
-#
-# print rpc_spec.validate('payload_handler', json.loads(argon_example)['argon'][
-#     'response_payload_handler']), '<--- argon response payload handler'
-# print rpc_spec.validate('payload_handler', json.loads(argon_example)['argon']['response_payload_handler']['handlers'][
-#     'payload']), '<--- argon response payload handler'
-#
-# m = json.loads(argon_example)['argon']['response_payload_handler']['handlers']['payload']['message_map']
-#
-# print json.dumps(m, indent=4)
-# print rpc_spec.definitions['payload_handler']
-# print rpc_spec.validate('message_map', m)
-#
-#

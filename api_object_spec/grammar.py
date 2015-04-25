@@ -109,6 +109,9 @@ class Model(object):
     def __repr__(self):
         return '<grammar.Model: "{}" with type {}>'.format(self.text, self.type)
 
+    def __str__(self):
+        return self.text
+
 
 class MatchExprName(object):
     def __init__(self, expr_name=None, descend=True):

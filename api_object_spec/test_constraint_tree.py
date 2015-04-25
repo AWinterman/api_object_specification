@@ -2,7 +2,23 @@ from compile import ApiSpecification, Compiler
 import grammar
 import model
 
+import random
+
 import unittest
+
+
+class UserRef(model.Ref):
+    def __init__(self, name, possible_values, model=None):
+        self.name = name
+        self.possible_values = possible_values
+        self.model = model
+
+
+    def _match(self, data):
+        return data in self.possible_values
+
+    def reify(self):
+        return random.choice(self.possible_values)
 
 
 class TestGrammar(unittest.TestCase):
@@ -20,35 +36,32 @@ class TestGrammar(unittest.TestCase):
     def test_array(self):
         result = self.c.model('["a", <b>, {"c": "d"}, <e>...]', rule="array")
         self.c.definitions = {
-            'b': [model.UserRef('b', ['a', 'b', 'c'])],
-            'e': [model.UserRef('e', [1, 2, 3])]
+            'b': [UserRef('b', ['a', 'b', 'c'])],
+            'e': [UserRef('e', [1, 2, 3])]
         }
 
         array_constraint = self.c._array(result)
+
+        print array_constraint.reify()
 
         self.assertEqual(type(array_constraint), model.Array)
         self.assertEqual(len(array_constraint.constraints), 4)
 
         self.assertTrue(array_constraint.match(['a', 'c', {'c': 'd'}, 1, 2, 3, 1, 2, 3]))
 
-    # def test_object(self):
-    #     tokenvalue = self.constraint_definition.model('{"wutever": <mang>, "such key": "value", <token>, <ssss>...}',
-    #                                                   rule='object')
-    #
-    #     result = self.constraint_definition._object(tokenvalue)
-    #
-    #     self.assertEqual(result.type, grammar.Type.object)
-    #     s = {v.type for v in result.value}
-    #     self.assertEqual(len(s), 1)
-    #     self.assertEqual(s.pop(), grammar.Type.key_value)
-    #
-    #     self.assertEqual(result.value[0].value,
-    #                      grammar.Constraint(type=grammar.Type.repeated_token, value='ssss'))
-    #     self.assertEqual(result.value[1].value,
-    #                      grammar.Constraint(type=grammar.Type.token, value='token'))
-    #     self.assertEqual(result.value[2].value,
-    #                      [grammar.Constraint(type=grammar.Type.key, value='such key'),
-    #                       grammar.Constraint(type=grammar.Type.string, value='value')])
+    def test_object(self):
+        tokenvalue = self.c.model('{"wutever": <mang>, "such key": "value", <token>: "sup", <ssss>...}',
+                                                      rule='object')
+
+        self.c.definitions = {
+            'mang': [UserRef('mang', ['a', 'b', 'c'])],
+            'token': [UserRef('token', [1, 2, 3])],
+            'ssss': [UserRef('sss', [('a', 'b'), ("c", " d")])]
+        }
+
+        result = self.c._object(tokenvalue)
+
+        print result.reify()
 
     def test_key_value(self):
         plain = self.c.model('"so": "it goes"', rule='pair')
@@ -78,9 +91,13 @@ class TestGrammar(unittest.TestCase):
 
             apathy = {"asif": "icare", "number": 1}
             apathy = {"deeper": {"nesting": {"of": "obj"}}, "another": "key"}
-            apathy = {<token>...}
+            apathy = {<token>, <token>...}
 
             apathetics = [<apathy>...]
 
         '''.strip())
 
+        r = t.validate('apathy', {})
+
+        print 'trace'
+        print '\n'.join(r.trace())

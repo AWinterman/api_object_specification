@@ -156,40 +156,23 @@ class Compiler(object):
 class ApiSpecification(object):
     c = Compiler()
 
-    def __init__(self, jsl, definitions=defaults.definitions):
-        self.definitions = self.c(jsl, definitions)
+    def __init__(self, jsl, definitions=None):
+        self.definitions = defaults.definitions.copy()
+
+        if definitions:
+            self.definitions.update(definitions)
+
+        self.definitions = self.c(jsl, self.definitions)
 
     def validate(self, name, data):
+        results = []
         for definition in self.definitions[name]:
-            if definition.match(data):
-                return True
-        return False
+            res = definition.match(data)
+
+            results.append(res)
+
+        return model.MatchResult(results, model=definition.model)
 
     def generate(self, name):
         for definition in self.definitions[name]:
             return definition.reify()
-
-
-#####
-#
-# sampleJSL = """
-#
-# wow = "such":"pair"
-# name = "randy"
-# hyderabad = {"anynumber": <number>}
-# things = ["foo", "barf", "dear friends", <string>...]
-# red = {"subjective":true, "rgb":"1 0 0"}
-# foo = {"color":<red>, "doge":<wow>, "bar":<hyderabad>, "my name is":<name>, "neat":12.59199, "cool":{"yay":"radical"}}
-#
-# """
-#
-# model = ApiSpecification(sampleJSL)
-#
-# print(model.generate("foo"))
-# print(model.validate("foo",
-#                      {"color": {"subjective": True, "rgb": "1 0 0"}, "doge": {"such": "pair"}, "bar": {"anynumber": 42},
-#                       "my name is": "randy", "neat": 12.59199, "cool": {"yay": "radical"}}))
-#
-# print(model.generate('things'))
-# print model.validate('things', ['food', 'barf', 'dear friends', 'wutever'])
-# print model.generate('wow')

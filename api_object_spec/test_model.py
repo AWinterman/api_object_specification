@@ -21,7 +21,7 @@ t = ApiSpecification('''
     token = "yessir": "dressir"
     token = "yessir": <object>
 
-    pair = {<token>...}
+    o = {<token>...}
 ''')
 
 print t.generate('pair')
@@ -31,8 +31,19 @@ examples = [
     {'boogie': 1}
 ]
 
+bad_examples = [
+    {'not a key': 1}
+]
+
 for e in examples:
-    assert t.validate('pair', e)
+    r = t.validate('o', e)
+    assert r
+
+for e in bad_examples:
+    r = t.validate('o', e)
+    print r.trace(), 'bad result'
+
+    assert not r
 
 t = ApiSpecification('token = {"1": <number>}')
 t = ApiSpecification('''
