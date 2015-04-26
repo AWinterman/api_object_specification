@@ -2,7 +2,7 @@ import click
 import os
 import json
 
-from compile import ApiSpecification
+from api_object_spec.compile import ApiSpecification
 
 @click.group(name="json-spec")
 @click.option('--spec-file', help="A file containing a JSL specification. Fallsback to ./jsl-spec and then ~/.jsl-spec if unspecified.")

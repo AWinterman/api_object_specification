@@ -4,7 +4,7 @@ from defaults import definitions
 
 result = model.KeyValue(
     model.Pair(
-        model.Token('string', definitions=definitions),
+        model.Token('string'),
         model.String('yes')
     )
 )

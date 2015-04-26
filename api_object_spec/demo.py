@@ -77,7 +77,7 @@ api_v3 = {
 }
 """
 
-from compile import ApiSpecification
+from api_object_spec.compile import ApiSpecification
 import json
 
 spec = ApiSpecification(api_v3)

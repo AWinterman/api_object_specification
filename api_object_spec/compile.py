@@ -1,20 +1,22 @@
-from collections import defaultdict
-import model
-import grammar
-import defaults
+from api_object_spec import model
+from api_object_spec import grammar
 
 
 class Compiler(object):
     def __call__(self, text, definitions=None):
-        self.definitions = defaultdict(list, definitions)
+        if definitions is None:
+            definitions = []
 
         for definition in self.model(text).definition:
-            self._definition(definition)
+            definitions.append(self._definition(definition))
 
-        return self.definitions
+        self.definitions = {d.name: d for d in definitions}
+
+        return definitions
 
     @staticmethod
     def model(text, rule=None):
+
         if rule is not None:
             return grammar.Model(grammar.dsl[rule].parse(text))
         else:
@@ -25,15 +27,15 @@ class Compiler(object):
         val = node.value
 
         if kv:
-            constraints = self._pair(*kv)
+            constraint = self._pair(*kv)
         elif val:
-            constraints = self._value(*val)
+            constraint = self._value(*val)
         else:
             raise ValueError("{} is not a valid definition body".format(node))
 
         name = node.descend('name')[0].text
 
-        self.definitions[name].append(constraints)
+        return model.Definition(name, constraint, model=node)
 
     def _array(self, array):
         constraints = []
@@ -52,7 +54,7 @@ class Compiler(object):
             else:
                 raise ValueError('"{}" is an illegal element'.format(element))
 
-            constraints.append(model.ArrayElement(el, index, model=el))
+            constraints.append(model.ArrayElement(model.Pair(index, el)))
 
         return model.Array(constraints, model=array)
 
@@ -89,9 +91,9 @@ class Compiler(object):
 
         # using unpacking here, should only get one element, if you have more it will throw.
         if token:
-            return model.KeyValue(self._token(*token), model=pair)
+            return model.ObjectElement(self._token(*token), model=pair)
         elif key and value:
-            return model.KeyValue(model.Pair(self._pair_key(*key), self._pair_value(*value)), model=pair)
+            return model.ObjectElement(model.Pair(self._pair_key(*key), self._pair_value(*value)), model=pair)
         else:
             raise ValueError('"{}" is not a pair'.format(pair))
 
@@ -128,12 +130,12 @@ class Compiler(object):
     def _one_token(self, token):
         name = token.descend('token_text')[0].text
 
-        return model.Token(name, self.definitions, model=token)
+        return model.Token(name, model=token)
 
     def _repeated_token(self, token):
         name = token.descend('token_text')[0].text
 
-        return model.RepeatedToken(name, self.definitions, model=token)
+        return model.Token(name, model=token, repeated=True)
 
     def _primitive(self, n):
         if n.string:
@@ -152,17 +154,16 @@ class Compiler(object):
     def _string(n):
         return model.String(n.text.strip('"'), model=n)
 
+c = Compiler()
 
 class ApiSpecification(object):
-    c = Compiler()
-
     def __init__(self, jsl, definitions=None):
-        self.definitions = defaults.definitions.copy()
+        # self.definitions = defaults.definitions.copy()
 
         if definitions:
             self.definitions.update(definitions)
 
-        self.definitions = self.c(jsl, self.definitions)
+        self.definitions = c(jsl, self.definitions)
 
     def validate(self, name, data):
         results = []
@@ -171,8 +172,7 @@ class ApiSpecification(object):
 
             results.append(res)
 
-        return model.MatchResult(results, model=definition.model)
+        return model.MatchResult(results, source=definition.model.name[0], other=data)
 
     def generate(self, name):
-        for definition in self.definitions[name]:
-            return definition.reify()
+        self.definitions[name].reify()

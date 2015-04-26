@@ -91,7 +91,7 @@ class TestGrammar(unittest.TestCase):
 
             apathy = {"asif": "icare", "number": 1}
             apathy = {"deeper": {"nesting": {"of": "obj"}}, "another": "key"}
-            apathy = {<token>, <token>...}
+            apathy = { <token>...}
 
             apathetics = [<apathy>...]
 
@@ -99,5 +99,5 @@ class TestGrammar(unittest.TestCase):
 
         r = t.validate('apathy', {})
 
-        print 'trace'
-        print '\n'.join(r.trace())
+        print 'trace:'
+        print '\n'.join(str(t) for t in r.trace())

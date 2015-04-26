@@ -1,5 +1,7 @@
 from collections import namedtuple
 from parsimonious.grammar import Grammar
+from parsimonious.exceptions import ParseError
+from api_object_spec.exceptions import ParsimoniousError
 
 DSL = r"""# A grammar for specifying JSON
 # DSL specific
@@ -66,6 +68,16 @@ def traverse(node, evaluate, depth_first=True, next_generation=get_children):
 
         if condition.match:
             yield tree
+
+
+def parse(spec, rule=None):
+    try:
+        if rule is not None:
+            return Model(dsl[rule].parse(spec))
+        else:
+            return Model(dsl.parse(spec))
+    except ParseError:
+        raise ParsimoniousError(ParseError)
 
 
 class Model(object):
