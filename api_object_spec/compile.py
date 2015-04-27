@@ -7,20 +7,15 @@ class Compiler(object):
         if definitions is None:
             definitions = []
 
-        for definition in self.model(text).definition:
+        m = grammar.parse(text)
+
+        for definition in m.definition:
             definitions.append(self._definition(definition))
 
-        self.definitions = {d.name: d for d in definitions}
+        self.definitions = model.Definitions(definitions, model=m)
 
-        return definitions
+        return self.definitions
 
-    @staticmethod
-    def model(text, rule=None):
-
-        if rule is not None:
-            return grammar.Model(grammar.dsl[rule].parse(text))
-        else:
-            return grammar.Model(grammar.dsl.parse(text))
 
     def _definition(self, node):
         kv = node.pair
@@ -54,7 +49,11 @@ class Compiler(object):
             else:
                 raise ValueError('"{}" is an illegal element'.format(element))
 
-            constraints.append(model.ArrayElement(model.Pair(index, el)))
+            constraints.append(model.ArrayElement(
+                model.Pair(
+                    model.Number(index, model=element), el, model=element),
+                model=element)
+            )
 
         return model.Array(constraints, model=array)
 
@@ -93,7 +92,7 @@ class Compiler(object):
         if token:
             return model.ObjectElement(self._token(*token), model=pair)
         elif key and value:
-            return model.ObjectElement(model.Pair(self._pair_key(*key), self._pair_value(*value)), model=pair)
+            return model.ObjectElement(model.Pair(self._pair_key(*key), self._pair_value(*value), model=pair), model=pair)
         else:
             raise ValueError('"{}" is not a pair'.format(pair))
 
@@ -158,12 +157,12 @@ c = Compiler()
 
 class ApiSpecification(object):
     def __init__(self, jsl, definitions=None):
-        # self.definitions = defaults.definitions.copy()
+        _definitions = [] #defaults.definitions.copy()
 
         if definitions:
-            self.definitions.update(definitions)
+            _definitions.extend(definitions)
 
-        self.definitions = c(jsl, self.definitions)
+        self.definitions = c(jsl, _definitions)
 
     def validate(self, name, data):
         results = []

@@ -76,8 +76,8 @@ def parse(spec, rule=None):
             return Model(dsl[rule].parse(spec))
         else:
             return Model(dsl.parse(spec))
-    except ParseError:
-        raise ParsimoniousError(ParseError)
+    except ParseError as e:
+        raise ParsimoniousError(e)
 
 
 class Model(object):
@@ -94,6 +94,12 @@ class Model(object):
 
     def __init__(self, node):
         self.node = node
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and self.node == other.node
+
+    def __hash__(self):
+        return hash(self.node) + hash(type(self))
 
     def __iter__(self):
         return (Model(result) for child in self.node.children for result in

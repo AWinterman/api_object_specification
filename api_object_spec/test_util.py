@@ -1,5 +1,5 @@
 from unittest import TestCase
-import util
+from api_object_spec import util
 
 class TestRecursivelyIterate(TestCase):
     def test_non_iterable(self):

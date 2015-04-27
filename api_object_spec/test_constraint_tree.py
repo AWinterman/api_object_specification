@@ -1,4 +1,4 @@
-from compile import ApiSpecification, Compiler
+from api_object_spec.compile import ApiSpecification, Compiler
 import grammar
 import model
 

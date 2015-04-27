@@ -1,6 +1,5 @@
-import model
-from compile import ApiSpecification
-from defaults import definitions
+from api_object_spec import model
+from api_object_spec.compile import ApiSpecification
 
 result = model.KeyValue(
     model.Pair(

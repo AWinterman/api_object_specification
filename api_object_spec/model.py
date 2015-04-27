@@ -1,33 +1,27 @@
-import abc
-import logging
-import util
-
-logger = logging.getLogger(__name__)
-
+# TODO: these can probably just be a combination of named tuples and enums.
 
 class Constraint(object):
     repeated = False
-
     # This is present because some methods will override __init__
-    data = None
+    model = None
 
-    def __init__(self, data, model=None):
+    def __init__(self, data, model):
         self.model = model
-        self.data = data
+        self._data = data
+
+    @property
+    def data(self):
+        return self._data
 
 
-class Collection(Constraint):
+    def __hash__(self):
+        return hash(self._data) + hash(self.model)
 
-    def __init__(self, constraints, model=None):
-        self.model = model
-        self.constraints = constraints
+    def __eq__(self, other):
+        return isinstance(self, other) and other.data == self.data and other.model == self.model
 
     def __iter__(self):
-        return iter(self.constraints)
-
-    def reify(self):
-        return self.collect(c.reify for c in self.constraints)
-
+        yield self.data
 
 class Primitive(Constraint):
     pass
@@ -40,18 +34,20 @@ class String(Primitive):
 class Number(Primitive):
     pass
 
+
 class Boolean(Primitive):
     pass
 
-class CollectionElement(Constraint):
-    # CollectionElements hold a more specific constraint.
-    __metaclass__ = abc.ABCMeta
 
-    def __init__(self, constraint, model=None):
-        self.constraint = constraint
+class Collection(Constraint):
+    def __init__(self, data, model=None):
+        super(Collection, self).__init__(tuple(data), model=model)
 
     def __iter__(self):
-        yield self.constraint
+        return iter(self.data)
+
+    def __len__(self):
+        return len(self.data)
 
 
 class Array(Collection):
@@ -62,6 +58,16 @@ class Object(Collection):
     pass
 
 
+class CollectionElement(Constraint):
+    # CollectionElements hold a more specific constraint.
+    def verbose_text(self, indent=4):
+        return 'Container {} for:\n{indent}{}'.format(
+            type(self),
+            self.data.verbose_text(indent * 2),
+            indent=' ' * indent
+        )
+
+
 class ArrayElement(CollectionElement):
     pass
 
@@ -70,43 +76,56 @@ class ObjectElement(CollectionElement):
     pass
 
 
-class Pair(Constraint):
-    def __init__(self, key, value):
-        # These are wrapped like this so that they have sufficient when yielded out of the iterable of Pair
-        self.key = PairKey(key)
-        self.value = PairKey(value)
-
-    def __iter__(self):
-        yield (self.key, self.value)
-
-
-class PairKey(CollectionElement):
-    @property
-    def data(self):
-        return self.constraint.data
-
-
-class PairValue(CollectionElement):
-    pass
-
-
 class Null(Primitive):
     def __init__(self, model=None):
-        super(self, Null).__init__(None, model=model)
+        super(Null, self).__init__(None, model=model)
+
+
+class Pair(Constraint):
+    def __init__(self, key, value, model):
+        # These are wrapped like this so that they have sufficient when yielded out of the iterable of Pair
+        self.key = key
+        self.value = value
+
+        super(Pair, self).__init__((self.key, self.value), model=model)
 
 class Token(Constraint):
     def __init__(self, name, model=None, repeated=False):
         self.name = name
-        self.model = model
         self.repeated = repeated
 
-# Definitions would be the collections here, but since they can neither appear, nor be referenced,
-# there's no need for a definitions collection object.
+        super(Token, self).__init__((name, repeated), model=model)
+
+class Definitions(Collection):
+    def __getitem__(self, item):
+        return NamedDefinitions([d for d in self.data if d.name == item], name=item, model=self.model)
+
+class NamedDefinitions(Definitions):
+    def __init__(self, data, name, model):
+        self.name = name
+        self.constraint = data
+        super(Definitions, self).__init__((tuple(data), name), model=model)
+
+    @property
+    def data(self):
+        return self.constraint
+
+    def pop(self):
+        return NamedDefinitions(self.data, model=self.model)
+
+
+
 class Definition(Constraint):
     def __init__(self, name, constraint, model=None):
         self.name = name
         self.constraint = constraint
         self.model = model
 
+        super(Definition, self).__init__((name, constraint), model=model)
+
+    @property
+    def data(self):
+        return self.constraint
+
     def __iter__(self):
-        yield self.constraint
+        yield self.data
