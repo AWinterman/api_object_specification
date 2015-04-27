@@ -51,7 +51,7 @@ class MatchResult(object):
         return '\n'.join(items)
 
     def _format_model_text(self, text, indent):
-        return '\n' + (4 * indent) + '\n {}'.format(4 * indent).join([t.strip() for t in text.split('\n')])
+        return '\n' + (indent + '    ') + '\n{}'.format(indent + '    ').join([t.strip() for t in text.split('\n')])
 
     def __len__(self):
         return len(self.values)
@@ -70,13 +70,22 @@ class Matcher(object):
 
     def __call__(self, constraint, other):
         if isinstance(constraint, model.Definitions):
+            if hasattr(constraint, 'name'):
+                comment = "token `{}` appears in definition list".format(constraint.name)
+            else:
+                comment = "is in specification".format(other)
+
+
             return MatchResult(
                 [self(d, other) for d in constraint],
                 operation=any,
                 constraint=constraint,
                 other=other,
-                comment="token `{}` appears in definition list".format(constraint.name)
+                comment=comment
             )
+        if isinstance(constraint, model.Pair):
+            raise NotImplementedError("haven't implemented object pair definitions yet")
+
         if isinstance(constraint, model.Collection):
             return self._match_collection(constraint, other)
 

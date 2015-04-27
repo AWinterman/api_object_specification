@@ -97,6 +97,7 @@ class Token(Constraint):
         super(Token, self).__init__((name, repeated), model=model)
 
 class Definitions(Collection):
+    # TODO: make the name field not required.
     def __getitem__(self, item):
         return NamedDefinitions([d for d in self.data if d.name == item], name=item, model=self.model)
 

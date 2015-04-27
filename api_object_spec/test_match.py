@@ -20,23 +20,25 @@ class TestMatcher(TestCase):
             repeated_yeses = [<yes>...]
             nested_yes = <yes_collection>
             nested_yes = [<nested_yes>]
-
-            pair = <yes>: "affirmative"
-            pair = "affirmative": <yes>
-
-            single_obj = {<pair>}
-            repeated_obj = {<pair>...}
         """
+        #
+        # """
+        #
+        #     pair = <yes>: "affirmative"
+        #     pair = "affirmative": <yes>
+        #
+        #     single_obj = {<pair>}
+        #     repeated_obj = {<pair>...}
+        # """
         self.spec = compile.ApiSpecification(spec)
         self.match = match.Matcher(self.spec.definitions)
 
 
 
     def test_primitives(self):
-
         result = [
-            self.match(self.spec.definitions['yes'], 'yes'),
-            self.match(self.spec.definitions['booltrue'], True),
+            self.match(self.spec.definitions, 'yes'),
+            self.match(self.spec.definitions, True),
             self.match(self.spec.definitions['null'], None),
             self.match(self.spec.definitions['number'], 1),
         ]
@@ -65,7 +67,8 @@ class TestMatcher(TestCase):
         for r in bad_result:
             self.assertFalse(r)
 
-        r = self.match(self.spec.definitions['yes_collection'], ('yes', 2, 1))
+        r = self.match(self.spec.definitions, ('yes', 2, 1))
+        print r.trace()
         self.assertTrue(r)
 
 
@@ -81,10 +84,10 @@ class TestMatcher(TestCase):
 
         self.assertTrue(r)
 
-        r = self.match(self.spec.definitions['nested_yes'], (('yesyesyes',),))
+        r = self.match(self.spec.definitions, (('yesyesyes',),))
         self.assertTrue(r)
 
-        r = self.match(self.spec.definitions['nested_yes'], ((('yesyesyes',),),))
+        r = self.match(self.spec.definitions, ((('yesyesyes',),),))
         self.assertTrue(r)
 
 

@@ -1,6 +1,7 @@
 from api_object_spec import model
 from api_object_spec import grammar
-
+from api_object_spec.match import Matcher
+from api_object_spec.decoder import decode
 
 class Compiler(object):
     def __call__(self, text, definitions=None):
@@ -164,14 +165,16 @@ class ApiSpecification(object):
 
         self.definitions = c(jsl, _definitions)
 
-    def validate(self, name, data):
-        results = []
-        for definition in self.definitions[name]:
-            res = definition.match(data)
+        self._match = Matcher(self.definitions)
 
-            results.append(res)
+    def validate(self, text, name=None):
+        data = decode(text)
 
-        return model.MatchResult(results, source=definition.model.name[0], other=data)
+        self._match(
+            constraint=self.definitions[name] if name is not None else self.definitions
+          , other=data
+        )
+
 
     def generate(self, name):
         self.definitions[name].reify()
