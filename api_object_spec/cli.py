@@ -4,6 +4,7 @@ import json
 
 from api_object_spec.compile import ApiSpecification
 
+
 @click.group(name="json-spec")
 @click.option('--spec-file', help="A file containing a JSL specification. Fallsback to ./jsl-spec and then ~/.jsl-spec if unspecified.")
 @click.pass_context
@@ -24,6 +25,7 @@ def cli(ctx, spec_file=None):
         spec = ApiSpecification(f.read())
         ctx.obj['spec'] = spec
 
+
 @click.command()
 @click.option('--name', help="the name of the rule you wish to validate against")
 @click.argument('file', nargs=1)
@@ -33,7 +35,6 @@ def validate(ctx, file, name=None):
         text = f.read()
 
     data = json.loads(text)
-
 
     spec = ctx.obj['spec']
 
@@ -55,11 +56,11 @@ def validate(ctx, file, name=None):
     for name, definitions in matches:
         click.echo('    ' + name)
 
-
     if not matches:
         raise click.ClickException(
             'no matches found, tried the following definition names:\n    {}'.format('\n    '.join(n for _, n, _ in results))
         )
+
 
 @click.command()
 def generate(*args, **kwargs):
@@ -71,11 +72,4 @@ cli.add_command(generate)
 
 if __name__ == '__main__':
     cli(obj={})
-
-
-
-
-
-
-
 

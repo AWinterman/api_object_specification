@@ -1,5 +1,6 @@
 import json
 
+
 class Decoder(json.JSONDecoder):
     def __init__(self, *args, **kwargs):
         super(Decoder, self).__init__(*args, **kwargs)
@@ -13,6 +14,8 @@ class Decoder(json.JSONDecoder):
     def tuple_parser(self, s_and_end, scan_once):
         values, end = json.decoder.JSONArray(s_and_end, scan_once)
         return tuple(values), end
+
+decode = Decoder().decode
 
 
 from unittest import TestCase

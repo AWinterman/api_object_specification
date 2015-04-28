@@ -17,7 +17,6 @@ class Compiler(object):
 
         return self.definitions
 
-
     def _definition(self, node):
         kv = node.pair
         val = node.value
@@ -154,11 +153,13 @@ class Compiler(object):
     def _string(n):
         return model.String(n.text.strip('"'), model=n)
 
+
 c = Compiler()
+
 
 class ApiSpecification(object):
     def __init__(self, jsl, definitions=None):
-        _definitions = [] #defaults.definitions.copy()
+        _definitions = []  # defaults.definitions.copy()
 
         if definitions:
             _definitions.extend(definitions)
@@ -171,10 +172,9 @@ class ApiSpecification(object):
         data = decode(text)
 
         self._match(
-            constraint=self.definitions[name] if name is not None else self.definitions
-          , other=data
+            constraint=self.definitions[name] if name is not None else self.definitions,
+            other=data
         )
-
 
     def generate(self, name):
         self.definitions[name].reify()

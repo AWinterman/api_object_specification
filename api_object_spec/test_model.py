@@ -4,11 +4,8 @@ from api_object_spec.compile import ApiSpecification
 result = model.KeyValue(
     model.Pair(
         model.Token('string'),
-        model.String('yes')
     )
 )
-
-print result.reify()
 
 print result
 
@@ -20,7 +17,7 @@ t = ApiSpecification('''
     token = "yessir": "dressir"
     token = "yessir": <object>
 
-    o = {<token>...}
+    pair = {<token>...}
 ''')
 
 print t.generate('pair')

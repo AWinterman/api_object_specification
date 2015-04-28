@@ -2,7 +2,6 @@ from collections import Mapping, Sequence, Counter
 from api_object_spec import model
 from api_object_spec.requirements import Requirements
 from copy import copy
-import configuration
 
 class MatchError(Exception):
     pass
