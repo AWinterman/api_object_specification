@@ -1,1 +1,0 @@
-max_generation_count = 10
