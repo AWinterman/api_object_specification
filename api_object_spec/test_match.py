@@ -3,6 +3,7 @@ from unittest import TestCase
 from api_object_spec import model
 from api_object_spec import compile
 from api_object_spec import match
+from api_object_spec import decoder
 
 class TestMatcher(TestCase):
     """
@@ -20,6 +21,7 @@ class TestMatcher(TestCase):
             repeated_yeses = [<yes>...]
             nested_yes = <yes_collection>
             nested_yes = [<nested_yes>]
+            yes_mapping = {<yes>: <nested_yes>, "wutever": "mang"}
         """
         #
         # """
@@ -67,31 +69,36 @@ class TestMatcher(TestCase):
         for r in bad_result:
             self.assertFalse(r)
 
-        r = self.match(self.spec.definitions, ('yes', 2, 1))
-        print r.trace()
+        r = self.match(self.spec.definitions, decoder.List(['yes', 2, 1]))
         self.assertTrue(r)
 
 
-        r = self.match(self.spec.definitions['yes_collection'], ('yes',))
+        r = self.match(self.spec.definitions['yes_collection'], decoder.List(('yes',)))
         self.assertFalse(r)
 
     def test_repeated_yes(self):
-        r = self.match(self.spec.definitions['repeated_yeses'], ('yes', 'yes',))
+        r = self.match(self.spec.definitions['repeated_yeses'], decoder.List(('yes', 'yes',)))
         self.assertTrue(r)
 
     def test_recursively_nested_array(self):
-        r = self.match(self.spec.definitions['nested_yes'], ('yesyesyes',))
+        r = self.match(self.spec.definitions['nested_yes'], decoder.List(('yesyesyes',)))
 
         self.assertTrue(r)
 
-        r = self.match(self.spec.definitions, (('yesyesyes',),))
+        r = self.match(self.spec.definitions, decoder.List((decoder.List(('yesyesyes',)),)))
         self.assertTrue(r)
 
-        r = self.match(self.spec.definitions, ((('yesyesyes',),),))
+        r = self.match(self.spec.definitions, decoder.List([decoder.List([decoder.List(['yesyesyes',]),]),]))
         self.assertTrue(r)
 
+    def test_object(self):
+        r = self.match(self.spec.definitions['yes_mapping'], decoder.Object({
+            "yes": decoder.List(["yesyesyes"]),
+            "wutever": "mang",
+        }))
 
-
+        print r.trace()
+        self.assertTrue(r)
 
 
 

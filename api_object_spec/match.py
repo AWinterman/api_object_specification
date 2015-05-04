@@ -2,6 +2,7 @@ from collections import Mapping, Sequence, Counter
 from api_object_spec import model
 from api_object_spec.requirements import Requirements
 from copy import copy
+from api_object_spec import decoder
 
 class MatchError(Exception):
     pass
@@ -118,10 +119,10 @@ class CollectionMatcher(object):
         self.matcher = matcher
 
     def __call__(self, constraint, other):
-        if not (isinstance(other, dict) or isinstance(other, tuple)):
+        if not (isinstance(other, decoder.Object) or isinstance(other, decoder.List)):
             return MatchResult.one(False, other=other, constraint=constraint)
 
-        self.other = copy(other)
+        self.other = other.copy()
         self.constraint = constraint
 
         result = {}
