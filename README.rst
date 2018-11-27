@@ -146,15 +146,11 @@ The JSON parser and generator are implemented according to the following steps:
    - The candidate object's entry at the keypath has been consumed.
    - We generated a value a configurable maximum number of times.
 
-Is this fast? Probably not. I haven't written it yet, let alone checked its
-performance characteristics. Like most readable pieces of code, it probably
-won't be.
 
 To Do
 -----
 - Configuration documentation
 - API documentation
-- ~~Write a parser which translates the dsl into a data structure representing expectations about a JSON object.~~
 - Write a generator which constructs objects according to the data structure described above.
 - Write a parser which is configured with the expectations data structure described above,
   and takes json objects as input. It should either be a callable or have a method which returns true if an object conforms to
