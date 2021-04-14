@@ -1,15 +1,11 @@
-import model
-from compile import ApiSpecification
-from defaults import definitions
+from api_object_spec import model
+from api_object_spec.compile import ApiSpecification
 
 result = model.KeyValue(
     model.Pair(
-        model.Token('string', definitions=definitions),
-        model.String('yes')
+        model.Token('string'),
     )
 )
-
-print result.reify()
 
 print result
 
@@ -31,8 +27,19 @@ examples = [
     {'boogie': 1}
 ]
 
+bad_examples = [
+    {'not a key': 1}
+]
+
 for e in examples:
-    assert t.validate('pair', e)
+    r = t.validate('o', e)
+    assert r
+
+for e in bad_examples:
+    r = t.validate('o', e)
+    print r.trace(), 'bad result'
+
+    assert not r
 
 t = ApiSpecification('token = {"1": <number>}')
 t = ApiSpecification('''

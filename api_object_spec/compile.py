@@ -1,39 +1,36 @@
-from collections import defaultdict
-import model
-import grammar
-import defaults
-
+from api_object_spec import model
+from api_object_spec import grammar
+from api_object_spec.match import Matcher
+from api_object_spec.decoder import decode
 
 class Compiler(object):
     def __call__(self, text, definitions=None):
-        self.definitions = defaultdict(list, definitions)
+        if definitions is None:
+            definitions = []
 
-        for definition in self.model(text).definition:
-            self._definition(definition)
+        m = grammar.parse(text)
+
+        for definition in m.definition:
+            definitions.append(self._definition(definition))
+
+        self.definitions = model.Definitions(definitions, model=m)
 
         return self.definitions
-
-    @staticmethod
-    def model(text, rule=None):
-        if rule is not None:
-            return grammar.Model(grammar.dsl[rule].parse(text))
-        else:
-            return grammar.Model(grammar.dsl.parse(text))
 
     def _definition(self, node):
         kv = node.pair
         val = node.value
 
         if kv:
-            constraints = self._pair(*kv)
+            constraint = self._pair(*kv)
         elif val:
-            constraints = self._value(*val)
+            constraint = self._value(*val)
         else:
             raise ValueError("{} is not a valid definition body".format(node))
 
         name = node.descend('name')[0].text
 
-        self.definitions[name].append(constraints)
+        return model.Definition(name, constraint, model=node)
 
     def _array(self, array):
         constraints = []
@@ -52,7 +49,11 @@ class Compiler(object):
             else:
                 raise ValueError('"{}" is an illegal element'.format(element))
 
-            constraints.append(model.ArrayElement(el, index, model=el))
+            constraints.append(model.ArrayElement(
+                model.Pair(
+                    model.Number(index, model=element), el, model=element),
+                model=element)
+            )
 
         return model.Array(constraints, model=array)
 
@@ -89,9 +90,9 @@ class Compiler(object):
 
         # using unpacking here, should only get one element, if you have more it will throw.
         if token:
-            return model.KeyValue(self._token(*token), model=pair)
+            return model.ObjectElement(self._token(*token), model=pair)
         elif key and value:
-            return model.KeyValue(model.Pair(self._pair_key(*key), self._pair_value(*value)), model=pair)
+            return model.ObjectElement(model.Pair(self._pair_key(*key), self._pair_value(*value), model=pair), model=pair)
         else:
             raise ValueError('"{}" is not a pair'.format(pair))
 
@@ -128,12 +129,12 @@ class Compiler(object):
     def _one_token(self, token):
         name = token.descend('token_text')[0].text
 
-        return model.Token(name, self.definitions, model=token)
+        return model.Token(name, model=token)
 
     def _repeated_token(self, token):
         name = token.descend('token_text')[0].text
 
-        return model.RepeatedToken(name, self.definitions, model=token)
+        return model.Token(name, model=token, repeated=True)
 
     def _primitive(self, n):
         if n.string:
@@ -153,43 +154,27 @@ class Compiler(object):
         return model.String(n.text.strip('"'), model=n)
 
 
+c = Compiler()
+
+
 class ApiSpecification(object):
-    c = Compiler()
+    def __init__(self, jsl, definitions=None):
+        _definitions = []  # defaults.definitions.copy()
 
-    def __init__(self, jsl, definitions=defaults.definitions):
-        self.definitions = self.c(jsl, definitions)
+        if definitions:
+            _definitions.extend(definitions)
 
-    def validate(self, name, data):
-        for definition in self.definitions[name]:
-            if definition.match(data):
-                return True
-        return False
+        self.definitions = c(jsl, _definitions)
+
+        self._match = Matcher(self.definitions)
+
+    def validate(self, text, name=None):
+        data = decode(text)
+
+        self._match(
+            constraint=self.definitions[name] if name is not None else self.definitions,
+            other=data
+        )
 
     def generate(self, name):
-        for definition in self.definitions[name]:
-            return definition.reify()
-
-
-#####
-#
-# sampleJSL = """
-#
-# wow = "such":"pair"
-# name = "randy"
-# hyderabad = {"anynumber": <number>}
-# things = ["foo", "barf", "dear friends", <string>...]
-# red = {"subjective":true, "rgb":"1 0 0"}
-# foo = {"color":<red>, "doge":<wow>, "bar":<hyderabad>, "my name is":<name>, "neat":12.59199, "cool":{"yay":"radical"}}
-#
-# """
-#
-# model = ApiSpecification(sampleJSL)
-#
-# print(model.generate("foo"))
-# print(model.validate("foo",
-#                      {"color": {"subjective": True, "rgb": "1 0 0"}, "doge": {"such": "pair"}, "bar": {"anynumber": 42},
-#                       "my name is": "randy", "neat": 12.59199, "cool": {"yay": "radical"}}))
-#
-# print(model.generate('things'))
-# print model.validate('things', ['food', 'barf', 'dear friends', 'wutever'])
-# print model.generate('wow')
+        self.definitions[name].reify()

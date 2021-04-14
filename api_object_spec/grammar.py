@@ -1,5 +1,7 @@
 from collections import namedtuple
 from parsimonious.grammar import Grammar
+from parsimonious.exceptions import ParseError
+from api_object_spec.exceptions import ParsimoniousError
 
 DSL = r"""# A grammar for specifying JSON
 # DSL specific
@@ -68,6 +70,16 @@ def traverse(node, evaluate, depth_first=True, next_generation=get_children):
             yield tree
 
 
+def parse(spec, rule=None):
+    try:
+        if rule is not None:
+            return Model(dsl[rule].parse(spec))
+        else:
+            return Model(dsl.parse(spec))
+    except ParseError as e:
+        raise ParsimoniousError(e)
+
+
 class Model(object):
     """
     Given a parsed grammar, make a model object for easy querying.
@@ -82,6 +94,12 @@ class Model(object):
 
     def __init__(self, node):
         self.node = node
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and self.node == other.node
+
+    def __hash__(self):
+        return hash(self.node) + hash(type(self))
 
     def __iter__(self):
         return (Model(result) for child in self.node.children for result in
@@ -108,6 +126,9 @@ class Model(object):
 
     def __repr__(self):
         return '<grammar.Model: "{}" with type {}>'.format(self.text, self.type)
+
+    def __str__(self):
+        return self.text
 
 
 class MatchExprName(object):
